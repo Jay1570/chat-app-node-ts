@@ -9,6 +9,8 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
+pool.on("error", (err) => console.error("Unexpected DB pool error", err));
+
 export type DB = typeof db;
 
 export default db;

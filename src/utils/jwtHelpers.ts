@@ -19,7 +19,7 @@ export const verifyToken = (token: string): Result<JwtUserPayload> => {
     } catch {
         return {
             success: false,
-            error: { code: 403, message: "Unauthorized" },
+            error: { code: 401, message: "Unauthorized" },
         };
     }
 };

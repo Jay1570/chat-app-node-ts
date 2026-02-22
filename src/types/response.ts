@@ -1,5 +1,7 @@
+import type { HttpStatusCode } from "../config/HttpStatusCodes.js";
+
 export type HttpResponse<T> = {
-    statusCode: number;
+    statusCode: HttpStatusCode;
     message: string;
     data?: T;
     success: boolean;

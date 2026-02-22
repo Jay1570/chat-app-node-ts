@@ -12,6 +12,7 @@ import type {
 } from "../types/User.js";
 import type { Result } from "../types/Result.js";
 import { hashPassword } from "../utils/hashPassword.js";
+import { HttpStatusCode } from "../config/HttpStatusCodes.js";
 
 export const getUserbyId = async (
     userId: string,
@@ -27,15 +28,23 @@ export const getUserbyId = async (
         if (!user) {
             return {
                 success: false,
-                error: { code: 404, message: "User not found" },
+                error: {
+                    code: HttpStatusCode.NOT_FOUND,
+                    message: "User not found",
+                },
             };
         }
 
         return { success: true, data: user };
     } catch (err) {
+        console.error(err);
         return {
             success: false,
-            error: { code: 500, message: "Internal server error", error: err },
+            error: {
+                code: HttpStatusCode.INTERNAL_SERVER_ERROR,
+                message: "Internal server error",
+                error: err,
+            },
         };
     }
 };
@@ -56,7 +65,7 @@ export const getUserByEmail = async (
             return {
                 success: false,
                 error: {
-                    code: 404,
+                    code: HttpStatusCode.NOT_FOUND,
                     message: "User not found",
                 },
             };
@@ -67,9 +76,14 @@ export const getUserByEmail = async (
             data: user,
         };
     } catch (err) {
+        console.error(err);
         return {
             success: false,
-            error: { code: 500, message: "Internal server error", error: err },
+            error: {
+                code: HttpStatusCode.INTERNAL_SERVER_ERROR,
+                message: "Internal server error",
+                error: err,
+            },
         };
     }
 };
@@ -84,14 +98,14 @@ export const insertUser = async (
             return {
                 success: false,
                 error: {
-                    code: 409,
+                    code: HttpStatusCode.CONFLICT,
                     message: "User with same email already exists",
                 },
             };
         }
         if (
             !userByEmailResult.success &&
-            userByEmailResult.error.code === 500
+            userByEmailResult.error.code !== HttpStatusCode.NOT_FOUND
         ) {
             return userByEmailResult;
         }
@@ -113,15 +127,23 @@ export const insertUser = async (
         if (!user) {
             return {
                 success: false,
-                error: { code: 500, message: "Internal server error" },
+                error: {
+                    code: HttpStatusCode.INTERNAL_SERVER_ERROR,
+                    message: "Internal server error",
+                },
             };
         }
 
         return { success: true, data: user };
     } catch (err) {
+        console.error(err);
         return {
             success: false,
-            error: { code: 500, message: "Internal server error", error: err },
+            error: {
+                code: HttpStatusCode.INTERNAL_SERVER_ERROR,
+                message: "Internal server error",
+                error: err,
+            },
         };
     }
 };

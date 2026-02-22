@@ -3,7 +3,7 @@ import {
     sendError,
     sendServerError,
     sendUnauthorized,
-} from "../utils/resoonseHandler.js";
+} from "../utils/responseHandler.js";
 import { verifyToken } from "../utils/jwtHelpers.js";
 import { getUserbyId } from "../services/user.service.js";
 import type { AuthRequest } from "../types/AuthRequest.js";
@@ -37,7 +37,8 @@ export const authenticateToken = async (
         req.user = userResult.data;
 
         return next();
-    } catch {
+    } catch (err) {
+        console.error(err);
         return sendServerError(res);
     }
 };

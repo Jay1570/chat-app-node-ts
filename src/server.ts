@@ -1,10 +1,10 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import type { Application } from "express";
 import env from "./env.js";
 import cors from "cors";
 import router from "./routes/index.js";
 import { requestLogger } from "./middlewares/logger.js";
-import { sendResponse } from "./utils/resoonseHandler.js";
+import { sendResponse, sendServerError } from "./utils/responseHandler.js";
 
 const app: Application = express();
 const port = env.PORT || 8000;
@@ -21,7 +21,20 @@ app.use((req, res) => {
         message: `Route ${req.path} not found`,
         statusCode: 404,
         data: undefined,
-    })
+    });
+});
+
+app.use((err: Error, req: Request, res: Response) => {
+    console.error(err);
+    return sendServerError(res);
+});
+
+process.on("unhandledRejection", (reason) =>
+    console.error("Unhandled rejection:", reason),
+);
+process.on("uncaughtException", (err) => {
+    console.error("Uncaught exception:", err);
+    process.exit(1);
 });
 
 app.listen(port, () => {

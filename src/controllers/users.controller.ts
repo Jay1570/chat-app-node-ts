@@ -7,12 +7,13 @@ import {
     sendError,
     sendResponse,
     sendServerError,
-} from "../utils/resoonseHandler.js";
+} from "../utils/responseHandler.js";
 import { getUserByEmail, insertUser } from "../services/user.service.js";
 import { signJWT } from "../utils/jwtHelpers.js";
 import type { User } from "../types/User.js";
 import { comparePasswords } from "../utils/hashPassword.js";
 import type { AuthRequest } from "../types/AuthRequest.js";
+import { HttpStatusCode } from "../config/HttpStatusCodes.js";
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
@@ -29,7 +30,6 @@ export const registerUser = async (req: Request, res: Response) => {
         if (!userInsertResult.success) {
             return sendError(res, userInsertResult);
         }
-        console.log("user inserted");
 
         const user = userInsertResult.data;
 
@@ -37,7 +37,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
         return sendResponse(res, {
             success: true,
-            statusCode: 201,
+            statusCode: HttpStatusCode.CREATED,
             message: "User registered successfully",
             data: {
                 token: jwtToken,
@@ -66,7 +66,7 @@ export const loginUser = async (req: Request, res: Response) => {
             return sendError(res, {
                 success: false,
                 error: {
-                    code: 400,
+                    code: HttpStatusCode.BAD_REQUEST,
                     message: "Invalid email or password",
                 },
             });
@@ -112,7 +112,7 @@ export const loginUser = async (req: Request, res: Response) => {
 export const currentUser = async (req: AuthRequest, res: Response) => {
     return sendResponse(res, {
         message: "User fetched successfully",
-        statusCode: 200,
+        statusCode: HttpStatusCode.OK,
         success: true,
         data: req.user!,
     });
