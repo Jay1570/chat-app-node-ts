@@ -1,11 +1,15 @@
 import type { Response } from "express";
 import type { HttpResponse } from "../types/response.js";
+import type { ErrorResult } from "../types/Result.js";
 
 export const sendResponse = <T>(
     res: Response,
     payload: HttpResponse<T>,
 ): Response => {
-    return res.status(payload.statusCode).send(payload);
+    return res.status(payload.statusCode).send({
+        ...payload,
+        timestamp: Date.now(),
+    });
 };
 
 export const sendUnauthorized = (res: Response): Response => {
@@ -23,5 +27,14 @@ export const sendServerError = (res: Response): Response => {
         data: undefined,
         message: "Internal server error",
         statusCode: 500,
+    });
+};
+
+export const sendError = (res: Response, error: ErrorResult): Response => {
+    return sendResponse(res, {
+        success: error.success,
+        message: error.error.message,
+        statusCode: error.error.code,
+        error: error.error.error,
     });
 };

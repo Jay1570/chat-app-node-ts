@@ -1,13 +1,41 @@
 {
-    "version": "7",
-    "dialect": "postgresql",
-    "entries": [
-        {
-            "idx": 0,
-            "version": "7",
-            "when": 1771674259406,
-            "tag": "0000_mushy_korath",
-            "breakpoints": true
-        }
-    ]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1771674259406,
+      "tag": "0000_mushy_korath",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771738927577,
+      "tag": "0001_eager_abomination",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771749955922,
+      "tag": "0002_bitter_random",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771750198127,
+      "tag": "0003_unique_slyde",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771751133363,
+      "tag": "0004_first_young_avengers",
+      "breakpoints": true
+    }
+  ]
 }

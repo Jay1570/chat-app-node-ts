@@ -1,5 +1,4 @@
-// eslint.config.ts
-import eslint from "@eslint/js";
+import * as eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import { defineConfig } from "eslint/config";
 
@@ -25,6 +24,7 @@ export default defineConfig([
             // Additional custom rules can be added here
             // Example: require "use strict" directives if needed in specific function scopes (optional in ESM)
             // "strict": ["error", "function"]
+            "@typescript-eslint/no-non-null-assertion": "warn",
         },
     },
     // Ignore output directory
