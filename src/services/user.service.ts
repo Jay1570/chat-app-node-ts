@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import db, { type DB } from "../db.js";
 import {
-    userSelect,
     usersTable,
     userWithoutPasswordSelect,
 } from "../schemas/users.schema.js";
@@ -56,7 +55,7 @@ export const getUserByEmail = async (
 ): Promise<Result<UserWithoutPassword | User>> => {
     try {
         const [user]: UserWithoutPassword[] | User[] = await conn
-            .select(fetchPassword ? userSelect : userWithoutPasswordSelect)
+            .select(fetchPassword ? usersTable : userWithoutPasswordSelect)
             .from(usersTable)
             .where(eq(usersTable.email, email))
             .limit(1);

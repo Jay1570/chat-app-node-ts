@@ -23,9 +23,6 @@
         "noImplicitAny": true,
         "strictNullChecks": true,
         "strict": true,
-        "verbatimModuleSyntax": true,
-        "isolatedModules": true,
-        "noUncheckedSideEffectImports": true,
         "moduleDetection": "force",
         "skipLibCheck": true
     },
