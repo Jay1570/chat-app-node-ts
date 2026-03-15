@@ -1,21 +1,21 @@
 import { eq } from "drizzle-orm";
-import db, { type DB } from "../db.js";
+import { type DB } from "../../db/db.js";
 import {
     usersTable,
     userWithoutPasswordSelect,
-} from "../schemas/users.schema.js";
+} from "../../db/schemas/users.schema.js";
 import type {
     RegisterUserPayload,
     User,
     UserWithoutPassword,
-} from "../types/User.js";
-import type { Result } from "../types/Result.js";
-import { hashPassword } from "../utils/hashPassword.js";
-import { HttpStatusCode } from "../config/HttpStatusCodes.js";
+} from "../../types/User.js";
+import type { Result } from "../../types/Result.js";
+import { hashPassword } from "../../utils/hashPassword.js";
+import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
 
-export const getUserbyId = async (
+export const getUserById = async (
     userId: string,
-    conn: DB = db,
+    conn: DB,
 ): Promise<Result<UserWithoutPassword>> => {
     try {
         const [user]: UserWithoutPassword[] = await conn
@@ -36,13 +36,14 @@ export const getUserbyId = async (
 
         return { success: true, data: user };
     } catch (err) {
-        console.error(err);
         return {
             success: false,
             error: {
                 code: HttpStatusCode.INTERNAL_SERVER_ERROR,
                 message: "Internal server error",
                 error: err,
+                module: "user.service",
+                method: "getUserById",
             },
         };
     }
@@ -51,7 +52,7 @@ export const getUserbyId = async (
 export const getUserByEmail = async (
     email: string,
     fetchPassword: boolean,
-    conn: DB = db,
+    conn: DB,
 ): Promise<Result<UserWithoutPassword | User>> => {
     try {
         const [user]: UserWithoutPassword[] | User[] = await conn
@@ -75,13 +76,14 @@ export const getUserByEmail = async (
             data: user,
         };
     } catch (err) {
-        console.error(err);
         return {
             success: false,
             error: {
                 code: HttpStatusCode.INTERNAL_SERVER_ERROR,
                 message: "Internal server error",
                 error: err,
+                module: "user.service",
+                method: "getUserByEmail",
             },
         };
     }
@@ -89,7 +91,7 @@ export const getUserByEmail = async (
 
 export const insertUser = async (
     { email, name, password }: RegisterUserPayload,
-    conn: DB = db,
+    conn: DB,
 ): Promise<Result<UserWithoutPassword>> => {
     try {
         const userByEmailResult = await getUserByEmail(email, false, conn);
@@ -135,13 +137,14 @@ export const insertUser = async (
 
         return { success: true, data: user };
     } catch (err) {
-        console.error(err);
         return {
             success: false,
             error: {
                 code: HttpStatusCode.INTERNAL_SERVER_ERROR,
                 message: "Internal server error",
                 error: err,
+                module: "user.service",
+                method: "insertUser",
             },
         };
     }

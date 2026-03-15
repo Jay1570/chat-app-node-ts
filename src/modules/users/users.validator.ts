@@ -1,9 +1,14 @@
 import * as z from "zod";
-import type { LoginPayload, RegisterUserPayload } from "../types/User.js";
-import type { Result } from "../types/Result.js";
+import type { LoginPayload, RegisterUserPayload } from "../../types/User.js";
+import type { Result } from "../../types/Result.js";
+import { normalizeZodError } from "../../utils/formatters.js";
 
 const registerUserSchema = z.object({
-    name: z.string().trim().max(255, "name should be less than 255 charactes"),
+    name: z
+        .string()
+        .trim()
+        .min(1, "name is required")
+        .max(255, "name should be less than 255 characters"),
     email: z.email("Invalid email"),
     password: z
         .string()
@@ -21,14 +26,14 @@ const loginSchema = registerUserSchema.omit({
 export const validateRegisterPayload = (
     payload: unknown,
 ): Result<RegisterUserPayload> => {
- const result = registerUserSchema.safeParse(payload);
+    const result = registerUserSchema.safeParse(payload);
     if (!result.success) {
         return {
             success: false,
             error: {
                 code: 400,
                 message: "Validation Failed",
-                error: result.error,
+                error: normalizeZodError(result.error),
             },
         };
     }
@@ -49,7 +54,7 @@ export const validateLoginPayload = (
             error: {
                 code: 400,
                 message: "Validation Failed",
-                error: result.error,
+                error: normalizeZodError(result.error),
             },
         };
     }

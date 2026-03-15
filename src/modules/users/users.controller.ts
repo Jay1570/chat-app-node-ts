@@ -1,34 +1,36 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import {
     validateLoginPayload,
     validateRegisterPayload,
-} from "../validators/users.validator.js";
-import {
-    sendError,
-    sendResponse,
-    sendServerError,
-} from "../utils/responseHandler.js";
-import { getUserByEmail, insertUser } from "../services/user.service.js";
-import { signJWT } from "../utils/jwtHelpers.js";
-import type { User } from "../types/User.js";
-import { comparePasswords } from "../utils/hashPassword.js";
-import type { AuthRequest } from "../types/AuthRequest.js";
-import { HttpStatusCode } from "../config/HttpStatusCodes.js";
+} from "./users.validator.js";
+import { sendResponse } from "../../core/responseHandler.js";
+import { getUserByEmail, insertUser } from "./user.service.js";
+import { signJWT } from "../../utils/jwtHelpers.js";
+import type { User } from "../../types/User.js";
+import { comparePasswords } from "../../utils/hashPassword.js";
+import type { AuthRequest } from "../../types/AuthRequest.js";
+import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
+import { ErrorResult } from "../../types/Result.js";
+import db from "../../db/db.js";
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
     try {
         const payload = req.body;
 
         const result = validateRegisterPayload(payload);
         if (!result.success) {
-            return sendError(res, result);
+            return next(result);
         }
 
         const userPayload = result.data;
 
-        const userInsertResult = await insertUser(userPayload);
+        const userInsertResult = await insertUser(userPayload, db);
         if (!userInsertResult.success) {
-            return sendError(res, userInsertResult);
+            return next(userInsertResult);
         }
 
         const user = userInsertResult.data;
@@ -45,31 +47,34 @@ export const registerUser = async (req: Request, res: Response) => {
             },
         });
     } catch (err) {
-        console.error(err);
-        return sendServerError(res);
+        return next(err);
     }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
     try {
         const payload = req.body;
 
         const result = validateLoginPayload(payload);
         if (!result.success) {
-            return sendError(res, result);
+            return next(result);
         }
 
         const loginPayload = result.data;
 
-        const userResult = await getUserByEmail(loginPayload.email, true);
+        const userResult = await getUserByEmail(loginPayload.email, true, db);
         if (!userResult.success) {
-            return sendError(res, {
+            return next({
                 success: false,
                 error: {
                     code: HttpStatusCode.BAD_REQUEST,
                     message: "Invalid email or password",
                 },
-            });
+            } satisfies ErrorResult);
         }
 
         const { password: hashedPassword, ...safeUser } =
@@ -80,16 +85,16 @@ export const loginUser = async (req: Request, res: Response) => {
             hashedPassword,
         );
         if (!matchedResult.success) {
-            return sendError(res, matchedResult);
+            return next(matchedResult);
         }
         if (!matchedResult.data) {
-            return sendError(res, {
+            return next({
                 success: false,
                 error: {
-                    code: 400,
+                    code: HttpStatusCode.BAD_REQUEST,
                     message: "Invalid email or password",
                 },
-            });
+            } satisfies ErrorResult);
         }
 
         const jwtToken = signJWT({ id: safeUser.id });
@@ -104,8 +109,7 @@ export const loginUser = async (req: Request, res: Response) => {
             },
         });
     } catch (err) {
-        console.error(err);
-        return sendServerError(res);
+        return next(err);
     }
 };
 

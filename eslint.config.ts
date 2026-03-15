@@ -25,6 +25,13 @@ export default defineConfig([
             // Example: require "use strict" directives if needed in specific function scopes (optional in ESM)
             // "strict": ["error", "function"]
             "@typescript-eslint/no-non-null-assertion": "warn",
+            "@typescript-eslint/no-unused-vars": [
+                "error",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                },
+            ],
         },
     },
     // Ignore output directory

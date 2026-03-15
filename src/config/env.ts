@@ -11,6 +11,8 @@ if (!process.env.JWT_SECRET) {
 }
 
 const env = {
+    NODE_ENV: process.env.NODE_ENV,
+    LOG_TO_FILE: process.env.LOG_TO_FILE,
     DB_URL: process.env.DB_URL,
     PORT: process.env.PORT,
     JWT_SECRET: process.env.JWT_SECRET,

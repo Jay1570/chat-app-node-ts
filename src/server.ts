@@ -1,10 +1,18 @@
 import express, { type Request, type Response } from "express";
-import type { Application } from "express";
-import env from "./env.js";
+import type { Application, NextFunction } from "express";
+import env from "./config/env.js";
 import cors from "cors";
-import router from "./routes/index.js";
-import { requestLogger } from "./middlewares/logger.js";
-import { sendResponse, sendServerError } from "./utils/responseHandler.js";
+import router from "./routes.js";
+import { requestLogger } from "./middlewares/logger.middleware.js";
+import {
+    sendError,
+    sendResponse,
+    sendServerError,
+} from "./core/responseHandler.js";
+import { ErrorResult } from "./types/Result.js";
+import { HttpStatusCode } from "./config/HttpStatusCodes.js";
+import { requestContextMiddleware } from "./middlewares/requestContext.middleware.js";
+import { logger } from "./core/logger.js";
 
 const app: Application = express();
 const port = env.PORT || 8000;
@@ -12,6 +20,7 @@ const port = env.PORT || 8000;
 app.use(cors());
 app.use(express.json());
 
+app.use(requestContextMiddleware);
 app.use(requestLogger);
 app.use("/api", router);
 
@@ -24,10 +33,32 @@ app.use((req, res) => {
     });
 });
 
-app.use((err: Error, req: Request, res: Response) => {
-    console.error(err);
-    return sendServerError(res);
-});
+app.use(
+    (
+        err: Error | ErrorResult | object,
+        req: Request,
+        res: Response,
+        _next: NextFunction,
+    ) => {
+        if (!err) return sendServerError(res);
+
+        if (
+            err instanceof Error ||
+            ("success" in err &&
+                err.error.code === HttpStatusCode.INTERNAL_SERVER_ERROR)
+        ) {
+            logger.error("Request finished with errors", err);
+            return sendServerError(res);
+        }
+
+        if ("success" in err) {
+            return sendError(res, err);
+        }
+
+        logger.error("Request finished with errors", err);
+        return sendServerError(res);
+    },
+);
 
 process.on("unhandledRejection", (reason) =>
     console.error("Unhandled rejection:", reason),

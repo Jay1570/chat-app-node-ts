@@ -10,4 +10,6 @@ export type ResultError = {
     code: HttpStatusCode;
     message: string;
     error?: unknown;
+    module?: string;
+    method?: string;
 };
