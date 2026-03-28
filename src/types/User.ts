@@ -15,3 +15,5 @@ export type UserWithoutPassword = Omit<User, "password">;
 export type RegisterUserPayload = Pick<User, "name" | "email" | "password">;
 
 export type LoginPayload = Pick<User, "email" | "password">;
+
+export type BasicUser = Pick<User, "id" | "name">;

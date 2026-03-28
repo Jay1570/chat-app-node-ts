@@ -36,7 +36,7 @@ app.use((req, res) => {
 app.use(
     (
         err: Error | ErrorResult | object,
-        req: Request,
+        _req: Request,
         res: Response,
         _next: NextFunction,
     ) => {

@@ -2,6 +2,7 @@ import * as z from "zod";
 import type { LoginPayload, RegisterUserPayload } from "../../types/User.js";
 import type { Result } from "../../types/Result.js";
 import { normalizeZodError } from "../../utils/formatters.js";
+import { validationError } from "../../core/resultHandlers.js";
 
 const registerUserSchema = z.object({
     name: z
@@ -28,14 +29,7 @@ export const validateRegisterPayload = (
 ): Result<RegisterUserPayload> => {
     const result = registerUserSchema.safeParse(payload);
     if (!result.success) {
-        return {
-            success: false,
-            error: {
-                code: 400,
-                message: "Validation Failed",
-                error: normalizeZodError(result.error),
-            },
-        };
+        return validationError(normalizeZodError(result.error));
     }
 
     return {
@@ -49,14 +43,7 @@ export const validateLoginPayload = (
 ): Result<LoginPayload> => {
     const result = loginSchema.safeParse(payload);
     if (!result.success) {
-        return {
-            success: false,
-            error: {
-                code: 400,
-                message: "Validation Failed",
-                error: normalizeZodError(result.error),
-            },
-        };
+        return validationError(normalizeZodError(result.error));
     }
 
     return {

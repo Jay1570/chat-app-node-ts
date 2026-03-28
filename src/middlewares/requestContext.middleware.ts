@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { requestContext } from "../core/requestContext.js";
 
 export const requestContextMiddleware = (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction,
 ) => {

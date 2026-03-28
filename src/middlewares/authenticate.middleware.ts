@@ -1,7 +1,7 @@
 import type { NextFunction, Response } from "express";
 import { sendUnauthorized } from "../core/responseHandler.js";
 import { verifyToken } from "../utils/jwtHelpers.js";
-import { getUserbyId } from "../modules/users/user.service.js";
+import { getUserById } from "../modules/users/user.service.js";
 import type { AuthRequest } from "../types/AuthRequest.js";
 import db from "../db/db.js";
 
@@ -23,7 +23,7 @@ export const authenticateToken = async (
             return sendUnauthorized(res);
         }
 
-        const userResult = await getUserbyId(tokenResult.data.id, db);
+        const userResult = await getUserById(tokenResult.data.id, db);
         if (!userResult.success) {
             if (userResult.error.code === 404) {
                 return sendUnauthorized(res);

@@ -12,6 +12,9 @@ import type {
 import type { Result } from "../../types/Result.js";
 import { hashPassword } from "../../utils/hashPassword.js";
 import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
+import { internalError } from "../../core/resultHandlers.js";
+
+const module = "user.service";
 
 export const getUserById = async (
     userId: string,
@@ -36,16 +39,7 @@ export const getUserById = async (
 
         return { success: true, data: user };
     } catch (err) {
-        return {
-            success: false,
-            error: {
-                code: HttpStatusCode.INTERNAL_SERVER_ERROR,
-                message: "Internal server error",
-                error: err,
-                module: "user.service",
-                method: "getUserById",
-            },
-        };
+        return internalError(module, "getUserById", err);
     }
 };
 
@@ -76,16 +70,7 @@ export const getUserByEmail = async (
             data: user,
         };
     } catch (err) {
-        return {
-            success: false,
-            error: {
-                code: HttpStatusCode.INTERNAL_SERVER_ERROR,
-                message: "Internal server error",
-                error: err,
-                module: "user.service",
-                method: "getUserByEmail",
-            },
-        };
+        return internalError(module, "getUserByEmail", err);
     }
 };
 
@@ -137,15 +122,6 @@ export const insertUser = async (
 
         return { success: true, data: user };
     } catch (err) {
-        return {
-            success: false,
-            error: {
-                code: HttpStatusCode.INTERNAL_SERVER_ERROR,
-                message: "Internal server error",
-                error: err,
-                module: "user.service",
-                method: "insertUser",
-            },
-        };
+        return internalError(module, "insertUser", err);
     }
 };
