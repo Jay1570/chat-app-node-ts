@@ -8,6 +8,8 @@ export type ConversationForList = {
     lastMessageByUserId: string | null;
     lastMessageByUser: BasicUser | null;
     lastMessageAt: string | null;
+    unreadCount: number;
+    otherUsers: BasicUser[];
 };
 
 export const ConversationTypes = {
@@ -22,9 +24,17 @@ export type ConversationListQueryRow = {
     id: string;
     name: string | null;
     type: ConversationType;
+    otherUserId: string | null;
     otherUserName: string | null;
     lastMessage: string | null;
     lastMessageByUserId: string | null;
     lastMessageAt: Date | null;
     senderName: string | null;
+    unreadCount: number | null;
+};
+
+export type RequestConversationPayload = {
+    userIds: string[];
+    conversationType: ConversationType;
+    conversationName?: string | null | undefined;
 };

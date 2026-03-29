@@ -22,3 +22,8 @@ export const userWithoutPasswordSelect = {
     createdAt: usersTable.createdAt,
     updatedAt: usersTable.updatedAt,
 };
+
+export const basicUserSelect = {
+    id: usersTable.id,
+    name: usersTable.name,
+};

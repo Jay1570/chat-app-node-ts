@@ -1,7 +1,20 @@
-import { eq, desc, aliasedTable, and, ne, ilike, or } from "drizzle-orm";
+import {
+    eq,
+    desc,
+    aliasedTable,
+    and,
+    ne,
+    ilike,
+    or,
+    sql,
+    count,
+    gt,
+} from "drizzle-orm";
 import {
     conversationTable,
     conversationMemberTable,
+    conversationRequestTable,
+    ConversationMemberInsertRequest,
 } from "../../db/schemas/conversations.schema.js";
 import { messagesTable } from "../../db/schemas/messages.schema.js";
 import { usersTable } from "../../db/schemas/users.schema.js";
@@ -10,75 +23,138 @@ import {
     ConversationForList,
     ConversationListQueryRow,
     ConversationType,
+    RequestConversationPayload,
 } from "../../types/Conversation.js";
 import { Result } from "../../types/Result.js";
 import { DB } from "../../db/db.js";
-import { getUserById } from "../users/user.service.js";
+import { getAllUserByIds } from "../users/user.service.js";
+import { mapOneToMany } from "../../utils/dbUtils.js";
+import { BasicUser } from "../../types/User.js";
 
 const module = "conversation.service";
 
-export const conversationDirectCreateService = async (
+export const sendConversationRequestService = async (
     currentUserId: string,
-    otherUserId: string,
+    {
+        userIds: otherUserIds,
+        conversationType,
+        conversationName,
+    }: RequestConversationPayload,
     conn: DB,
 ): Promise<Result<{ id: string; type: ConversationType }>> => {
     try {
-        if (currentUserId === otherUserId) {
+        const userIds = new Set(otherUserIds);
+
+        if (userIds.has(currentUserId)) {
             return validationError(
-                "Cannot create a direct conversation with yourself",
+                "Cannot create a conversation with yourself",
             );
         }
 
-        const otherUserResult = await getUserById(otherUserId, conn);
-        if (!otherUserResult.success) {
-            return otherUserResult;
+        const otherUserResult = await getAllUserByIds(otherUserIds, conn);
+        if (!otherUserResult.success) return otherUserResult;
+
+        if (otherUserResult.data.length !== otherUserIds.length) {
+            return validationError("Some users do not exist");
         }
 
-        const cm1 = aliasedTable(conversationMemberTable, "cm1");
-        const cm2 = aliasedTable(conversationMemberTable, "cm2");
+        
+        if (conversationType === "direct") {
+            const otherUserId = otherUserIds[0];
+            const cm1 = aliasedTable(conversationMemberTable, "cm1");
+            const cm2 = aliasedTable(conversationMemberTable, "cm2");
 
-        const [existingConversation] = await conn
-            .select({
-                id: conversationTable.id,
-                type: conversationTable.type,
-            })
-            .from(conversationTable)
-            .innerJoin(cm1, eq(conversationTable.id, cm1.conversationId))
-            .innerJoin(cm2, eq(conversationTable.id, cm2.conversationId))
-            .where(
-                and(
-                    eq(conversationTable.type, "direct"),
-                    eq(cm1.userId, currentUserId),
-                    eq(cm2.userId, otherUserId),
-                ),
-            )
-            .limit(1);
+            const [existingConversation] = await conn
+                .select({
+                    id: conversationTable.id,
+                    type: conversationTable.type,
+                })
+                .from(conversationTable)
+                .innerJoin(cm1, eq(conversationTable.id, cm1.conversationId))
+                .innerJoin(cm2, eq(conversationTable.id, cm2.conversationId))
+                .where(
+                    and(
+                        eq(conversationTable.type, "direct"),
+                        eq(cm1.userId, currentUserId),
+                        eq(cm2.userId, otherUserId!),
+                    ),
+                )
+                .limit(1);
 
-        if (existingConversation) {
-            return {
-                success: true,
-                data: existingConversation,
-            };
+            if (existingConversation) {
+                return { success: true, data: existingConversation };
+            }
+
+            const [existingRequest] = await conn
+                .select({ id: conversationRequestTable.id })
+                .from(conversationRequestTable)
+                .where(
+                    or(
+                        and(
+                            eq(
+                                conversationRequestTable.senderId,
+                                currentUserId,
+                            ),
+                            eq(
+                                conversationRequestTable.receiverId,
+                                otherUserId!,
+                            ),
+                        ),
+                        and(
+                            eq(conversationRequestTable.senderId, otherUserId!),
+                            eq(
+                                conversationRequestTable.receiverId,
+                                currentUserId,
+                            ),
+                        ),
+                    ),
+                )
+                .limit(1);
+
+            if (existingRequest) {
+                return validationError("Request already sent");
+            }
         }
 
         return await conn.transaction(async (tx) => {
             const [newConversation] = await tx
                 .insert(conversationTable)
                 .values({
-                    type: "direct",
+                    type: conversationType,
+                    name: conversationName,
                 })
                 .returning({
                     id: conversationTable.id,
                     type: conversationTable.type,
+                    name: conversationTable.name,
                 });
+
             if (!newConversation) {
-                return internalError(module, "conversationDirectCreateService");
+                return internalError(module, "sendConversationRequestService");
             }
 
-            await tx.insert(conversationMemberTable).values([
-                { conversationId: newConversation.id, userId: currentUserId },
-                { conversationId: newConversation.id, userId: otherUserId },
-            ]);
+            const memberRequests: ConversationMemberInsertRequest[] =
+                otherUserIds.map((id) => ({
+                    conversationId: newConversation.id,
+                    userId: id,
+                    status: "pending",
+                }));
+
+            memberRequests.push({
+                conversationId: newConversation.id,
+                userId: currentUserId,
+                status: "active",
+            });
+
+            await tx.insert(conversationMemberTable).values(memberRequests);
+
+            const requests = otherUserIds.map((receiverId) => ({
+                senderId: currentUserId,
+                receiverId,
+                conversationId: newConversation.id,
+            }));
+
+            await tx.insert(conversationRequestTable).values(requests);
 
             return {
                 success: true,
@@ -86,7 +162,7 @@ export const conversationDirectCreateService = async (
             };
         });
     } catch (err) {
-        return internalError(module, "conversationDirectCreateService", err);
+        return internalError(module, "sendConversationRequestService", err);
     }
 };
 
@@ -103,33 +179,52 @@ export const conversationListService = async (
             "other_member",
         );
         const otherUserTable = aliasedTable(usersTable, "other_user");
+        const lastReadMessage = aliasedTable(
+            messagesTable,
+            "last_read_message",
+        );
 
-        // Latest message subquery (conceptual logic for Drizzle)
         const latestMessageSubquery = conn
-            .selectDistinctOn([messagesTable.conversationId], {
-                conversationId: messagesTable.conversationId,
+            .select({
                 id: messagesTable.id,
+                conversationId: messagesTable.conversationId,
                 content: messagesTable.content,
                 senderId: messagesTable.senderId,
                 createdAt: messagesTable.createdAt,
             })
             .from(messagesTable)
-            .orderBy(
-                messagesTable.conversationId,
-                desc(messagesTable.createdAt),
-            )
+            .where(eq(messagesTable.conversationId, conversationTable.id))
+            .orderBy(desc(messagesTable.createdAt))
+            .limit(1)
             .as("latest_message");
+
+        const unreadCountSubQuery = conn
+            .select({ id: count() })
+            .from(messagesTable)
+            .where(
+                and(
+                    eq(messagesTable.conversationId, conversationTable.id),
+                    gt(
+                        messagesTable.createdAt,
+                        sql`COALESCE (${lastReadMessage.createdAt}, to_timestamp(0))`,
+                    ),
+                    ne(messagesTable.senderId, userId),
+                ),
+            )
+            .as("unread_count");
 
         const query = (await conn
             .select({
                 id: conversationTable.id,
                 name: conversationTable.name,
                 type: conversationTable.type,
+                otherUserId: otherUserTable.id,
                 otherUserName: otherUserTable.name,
                 lastMessage: latestMessageSubquery.content,
                 lastMessageByUserId: latestMessageSubquery.senderId,
                 lastMessageAt: latestMessageSubquery.createdAt,
                 senderName: usersTable.name,
+                unreadCount: unreadCountSubQuery.id,
             })
             .from(conversationTable)
             .innerJoin(
@@ -139,10 +234,7 @@ export const conversationListService = async (
                     conversationMemberTable.conversationId,
                 ),
             )
-            .leftJoin(
-                latestMessageSubquery,
-                eq(conversationTable.id, latestMessageSubquery.conversationId),
-            )
+            .leftJoinLateral(latestMessageSubquery, sql`true`)
             .leftJoin(
                 usersTable,
                 eq(latestMessageSubquery.senderId, usersTable.id),
@@ -158,9 +250,18 @@ export const conversationListService = async (
                 otherUserTable,
                 eq(otherMemberTable.userId, otherUserTable.id),
             )
+            .leftJoin(
+                lastReadMessage,
+                eq(
+                    conversationMemberTable.lastReadMessageId,
+                    lastReadMessage.id,
+                ),
+            )
             .where(
                 and(
                     eq(conversationMemberTable.userId, userId),
+                    eq(conversationMemberTable.status, "active"),
+                    eq(conversationTable.status, "active"),
                     or(
                         ilike(conversationTable.name, searchPattern),
                         ilike(otherUserTable.name, searchPattern),
@@ -171,24 +272,62 @@ export const conversationListService = async (
                 desc(latestMessageSubquery.createdAt),
             )) as ConversationListQueryRow[];
 
-        const conversations: ConversationForList[] = query.map((row) => ({
-            id: row.id,
-            name: row.name || row.otherUserName || "Unnamed Conversation",
-            type: row.type,
-            lastMessage: row.lastMessage || null,
-            lastMessageByUserId: row.lastMessageByUserId,
-            lastMessageByUser: row.lastMessageByUserId
-                ? {
-                      id: row.lastMessageByUserId,
-                      name: row.senderName || "Unknown User",
-                  }
-                : null,
-            lastMessageAt: row.lastMessageAt?.toISOString() || null,
-        }));
+        const processedData = mapOneToMany<
+            ConversationListQueryRow,
+            "id",
+            BasicUser,
+            "otherUsers",
+            ConversationForList
+        >({
+            rows: query,
+            parentKey: "id",
+            childrenKey: "otherUsers",
+            createParent: (row) => ({
+                id: row.id,
+                name: row.name || "Unnamed Conversation",
+                type: row.type,
+                lastMessage: row.lastMessage || null,
+                lastMessageByUserId: row.lastMessageByUserId,
+                lastMessageByUser: row.lastMessageByUserId
+                    ? {
+                          id: row.lastMessageByUserId,
+                          name: row.senderName || "Unknown User",
+                      }
+                    : null,
+                lastMessageAt: row.lastMessageAt?.toISOString() || null,
+                otherUsers: [],
+                unreadCount: row.unreadCount || 0,
+            }),
+            createChild: (row) => {
+                if (!row.otherUserId) return null;
+
+                return {
+                    id: row.otherUserId,
+                    name: row.otherUserName || "Unknown User",
+                };
+            },
+        });
+
+        const finalConversations: ConversationForList[] = processedData.map(
+            (conv) => ({
+                id: conv.id,
+                type: conv.type,
+                name:
+                    conv.type === "direct"
+                        ? conv.otherUsers[0]?.name || "Unnamed Conversation"
+                        : conv.name || "Unnamed Group",
+                lastMessage: conv.lastMessage,
+                lastMessageByUserId: conv.lastMessageByUserId,
+                lastMessageByUser: conv.lastMessageByUser,
+                lastMessageAt: conv.lastMessageAt,
+                otherUsers: conv.otherUsers,
+                unreadCount: conv.unreadCount,
+            }),
+        );
 
         return {
             success: true,
-            data: conversations,
+            data: finalConversations,
         };
     } catch (err) {
         return internalError(module, "conversationListService", err);

@@ -1,14 +1,14 @@
 import { AuthRequest } from "../../types/AuthRequest.js";
 import type { NextFunction, Response } from "express";
 import {
-    conversationDirectCreateService,
     conversationListService,
+    sendConversationRequestService,
 } from "./conversations.service.js";
 import db from "../../db/db.js";
 import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
 import { sendResponse } from "../../core/responseHandler.js";
 import { validationError } from "../../core/resultHandlers.js";
-import { validateconversationDirectCreatePayload } from "./conversation.validator.js";
+import { validateConversationRequestPayload } from "./conversation.validator.js";
 
 export const conversationListController = async (
     req: AuthRequest,
@@ -42,7 +42,7 @@ export const conversationListController = async (
     }
 };
 
-export const conversationDirectCreateController = async (
+export const sendConversationRequest = async (
     req: AuthRequest,
     res: Response,
     next: NextFunction,
@@ -50,17 +50,14 @@ export const conversationDirectCreateController = async (
     try {
         const payload = req.body;
 
-        const validationResult =
-            validateconversationDirectCreatePayload(payload);
+        const validationResult = validateConversationRequestPayload(payload);
         if (!validationResult.success) {
             return next(validationResult);
         }
 
-        const reqBody = validationResult.data;
-
-        const createConversationResult = await conversationDirectCreateService(
+        const createConversationResult = await sendConversationRequestService(
             req.user!.id,
-            reqBody.userId,
+            validationResult.data,
             db,
         );
         if (!createConversationResult.success) {

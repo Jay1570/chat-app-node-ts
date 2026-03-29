@@ -1,10 +1,12 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { type DB } from "../../db/db.js";
 import {
+    basicUserSelect,
     usersTable,
     userWithoutPasswordSelect,
 } from "../../db/schemas/users.schema.js";
 import type {
+    BasicUser,
     RegisterUserPayload,
     User,
     UserWithoutPassword,
@@ -123,5 +125,21 @@ export const insertUser = async (
         return { success: true, data: user };
     } catch (err) {
         return internalError(module, "insertUser", err);
+    }
+};
+
+export const getAllUserByIds = async (
+    userIds: string[],
+    conn: DB,
+): Promise<Result<BasicUser[]>> => {
+    try {
+        const users: BasicUser[] = await conn
+            .select(basicUserSelect)
+            .from(usersTable)
+            .where(inArray(usersTable.id, userIds));
+
+        return { success: true, data: users };
+    } catch (err) {
+        return internalError(module, "getAllUserByIds", err);
     }
 };

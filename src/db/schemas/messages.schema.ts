@@ -2,6 +2,7 @@ import { boolean, index, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { timestampsColumns } from "./commonColumns.schema.js";
 import { conversationTable } from "./conversations.schema.js";
 import { usersTable } from "./users.schema.js";
+import { desc } from "drizzle-orm";
 
 export const messagesTable = pgTable(
     "messages",
@@ -19,7 +20,10 @@ export const messagesTable = pgTable(
         ...timestampsColumns,
     },
     (table) => [
-        index("messages_conversation_idx").on(table.conversationId),
+        index("messages_conversation_idx").on(
+            table.conversationId,
+            desc(table.createdAt),
+        ),
         index("messages_sender_idx").on(table.senderId),
     ],
 );
