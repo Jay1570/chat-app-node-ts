@@ -2,13 +2,18 @@ import { AuthRequest } from "../../types/AuthRequest.js";
 import type { NextFunction, Response } from "express";
 import {
     conversationListService,
+    reviewConversationRequestService,
     sendConversationRequestService,
 } from "./conversations.service.js";
 import db from "../../db/db.js";
 import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
 import { sendResponse } from "../../core/responseHandler.js";
 import { validationError } from "../../core/resultHandlers.js";
-import { validateConversationRequestPayload } from "./conversation.validator.js";
+import {
+    conversationRequestPayload,
+    reviewConversationRequestPayload,
+} from "./conversation.validator.js";
+import { validatePayload } from "../../core/validator.js";
 
 export const conversationListController = async (
     req: AuthRequest,
@@ -50,7 +55,10 @@ export const sendConversationRequest = async (
     try {
         const payload = req.body;
 
-        const validationResult = validateConversationRequestPayload(payload);
+        const validationResult = validatePayload(
+            conversationRequestPayload,
+            payload,
+        );
         if (!validationResult.success) {
             return next(validationResult);
         }
@@ -69,6 +77,39 @@ export const sendConversationRequest = async (
             statusCode: HttpStatusCode.CREATED,
             data: createConversationResult.data,
             message: "Conversation created successfully",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+export const reviewConversationRequest = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const validationResult = validatePayload(
+            reviewConversationRequestPayload,
+            req.body,
+        );
+        if (!validationResult.success) {
+            return next(validationResult);
+        }
+
+        const result = await reviewConversationRequestService(
+            req.user!.id,
+            validationResult.data,
+            db,
+        );
+        if (!result.success) {
+            return next(result);
+        }
+
+        return sendResponse(res, {
+            success: true,
+            message: `Request ${validationResult.data.status} successfully`,
+            statusCode: HttpStatusCode.OK,
         });
     } catch (err) {
         return next(err);

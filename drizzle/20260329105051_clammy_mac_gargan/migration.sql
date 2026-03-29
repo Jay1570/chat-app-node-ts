@@ -1,0 +1,2 @@
+ALTER TABLE "conversation_member" DROP CONSTRAINT "conversation_member_conversation_id_conversations_id_fkey", ADD CONSTRAINT "conversation_member_conversation_id_conversations_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversations"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "conversation_member" DROP CONSTRAINT "conversation_member_user_id_users_id_fkey", ADD CONSTRAINT "conversation_member_user_id_users_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE;

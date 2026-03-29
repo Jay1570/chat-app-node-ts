@@ -17,8 +17,16 @@ export const ConversationTypes = {
     direct: "direct",
 } as const;
 
+export const ConversationRequestStatuses = {
+    approve: "approve",
+    reject: "reject",
+} as const;
+
 export type ConversationType =
     (typeof ConversationTypes)[keyof typeof ConversationTypes];
+
+export type ConversationRequestStatus =
+    (typeof ConversationRequestStatuses)[keyof typeof ConversationRequestStatuses];
 
 export type ConversationListQueryRow = {
     id: string;
@@ -38,3 +46,26 @@ export type RequestConversationPayload = {
     conversationType: ConversationType;
     conversationName?: string | null | undefined;
 };
+
+export type ReviewConversationRequestPayload = {
+    requestId: string;
+    status: ConversationRequestStatus;
+};
+
+export type ConversationRequest = {
+    createdAt: Date;
+    updatedAt: Date;
+    id: string;
+    senderId: string;
+    receiverId: string;
+    conversationId: string;
+};
+
+export type DeleteConversationMemberPayload =
+    | {
+          userId: string;
+          conversationId: string;
+      }
+    | {
+          conversationMemberId: string;
+      };

@@ -1,8 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import {
-    validateLoginPayload,
-    validateRegisterPayload,
-} from "./users.validator.js";
+import { loginPayload, registerUserPayload } from "./users.validator.js";
 import { sendResponse } from "../../core/responseHandler.js";
 import { getUserByEmail, insertUser } from "./user.service.js";
 import { signJWT } from "../../utils/jwtHelpers.js";
@@ -12,6 +9,7 @@ import type { AuthRequest } from "../../types/AuthRequest.js";
 import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
 import { ErrorResult } from "../../types/Result.js";
 import db from "../../db/db.js";
+import { validatePayload } from "../../core/validator.js";
 
 export const registerUser = async (
     req: Request,
@@ -21,7 +19,7 @@ export const registerUser = async (
     try {
         const payload = req.body;
 
-        const result = validateRegisterPayload(payload);
+        const result = validatePayload(registerUserPayload, payload);
         if (!result.success) {
             return next(result);
         }
@@ -57,16 +55,14 @@ export const loginUser = async (
     next: NextFunction,
 ) => {
     try {
-        const payload = req.body;
-
-        const result = validateLoginPayload(payload);
+        const result = validatePayload(loginPayload, req.body);
         if (!result.success) {
             return next(result);
         }
 
-        const loginPayload = result.data;
+        const payload = result.data;
 
-        const userResult = await getUserByEmail(loginPayload.email, true, db);
+        const userResult = await getUserByEmail(payload.email, true, db);
         if (!userResult.success) {
             return next({
                 success: false,
@@ -81,7 +77,7 @@ export const loginUser = async (
             userResult.data as User;
 
         const matchedResult = await comparePasswords(
-            loginPayload.password,
+            payload.password,
             hashedPassword,
         );
         if (!matchedResult.success) {

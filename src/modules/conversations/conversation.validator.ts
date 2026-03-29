@@ -1,10 +1,6 @@
-import * as z from "zod";
-import { Result } from "../../types/Result.js";
-import { validationError } from "../../core/resultHandlers.js";
-import { normalizeZodError } from "../../utils/formatters.js";
-import { RequestConversationPayload } from "../../types/Conversation.js";
+import * as z from "zod/v4";
 
-const conversationRequestSchema = z
+export const conversationRequestPayload = z
     .object({
         userIds: z
             .array(z.uuid())
@@ -41,16 +37,7 @@ const conversationRequestSchema = z
         }
     });
 
-export const validateConversationRequestPayload = (
-    payload: unknown,
-): Result<RequestConversationPayload> => {
-    const result = conversationRequestSchema.safeParse(payload);
-    if (!result.success) {
-        return validationError(normalizeZodError(result.error));
-    }
-
-    return {
-        success: true,
-        data: result.data,
-    };
-};
+export const reviewConversationRequestPayload = z.object({
+    requestId: z.uuid(),
+    status: z.enum(["approve", "reject"]),
+});

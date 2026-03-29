@@ -13,3 +13,12 @@ export type ResultError = {
     module?: string;
     method?: string;
 };
+
+export class ApiError extends Error {
+    error: ErrorResult;
+
+    constructor(error: ErrorResult) {
+        super();
+        this.error = error;
+    }
+}

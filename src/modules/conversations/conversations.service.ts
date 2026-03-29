@@ -18,14 +18,22 @@ import {
 } from "../../db/schemas/conversations.schema.js";
 import { messagesTable } from "../../db/schemas/messages.schema.js";
 import { usersTable } from "../../db/schemas/users.schema.js";
-import { internalError, validationError } from "../../core/resultHandlers.js";
+import {
+    handleError,
+    internalError,
+    notFoundError,
+    validationError,
+} from "../../core/resultHandlers.js";
 import {
     ConversationForList,
     ConversationListQueryRow,
+    ConversationRequest,
     ConversationType,
+    DeleteConversationMemberPayload,
     RequestConversationPayload,
+    ReviewConversationRequestPayload,
 } from "../../types/Conversation.js";
-import { Result } from "../../types/Result.js";
+import { ApiError, Result } from "../../types/Result.js";
 import { DB } from "../../db/db.js";
 import { getAllUserByIds } from "../users/user.service.js";
 import { mapOneToMany } from "../../utils/dbUtils.js";
@@ -115,53 +123,252 @@ export const sendConversationRequestService = async (
             }
         }
 
-        return await conn.transaction(async (tx) => {
-            const [newConversation] = await tx
-                .insert(conversationTable)
-                .values({
-                    type: conversationType,
-                    name: conversationName,
-                })
-                .returning({
-                    id: conversationTable.id,
-                    type: conversationTable.type,
-                    name: conversationTable.name,
-                });
+        return await conn
+            .transaction(
+                async (
+                    tx,
+                ): Promise<Result<{ id: string; type: ConversationType }>> => {
+                    const [newConversation] = await tx
+                        .insert(conversationTable)
+                        .values({
+                            type: conversationType,
+                            name: conversationName,
+                        })
+                        .returning({
+                            id: conversationTable.id,
+                            type: conversationTable.type,
+                            name: conversationTable.name,
+                        });
 
-            if (!newConversation) {
-                return internalError(module, "sendConversationRequestService");
-            }
+                    if (!newConversation) {
+                        throw new ApiError(
+                            internalError(
+                                module,
+                                "sendConversationRequestService",
+                            ),
+                        );
+                    }
 
-            const memberRequests: ConversationMemberInsertRequest[] =
-                otherUserIds.map((id) => ({
-                    conversationId: newConversation.id,
-                    userId: id,
-                    status: "pending",
-                }));
+                    const memberRequests: ConversationMemberInsertRequest[] =
+                        otherUserIds.map((id) => ({
+                            conversationId: newConversation.id,
+                            userId: id,
+                            status: "pending",
+                        }));
 
-            memberRequests.push({
-                conversationId: newConversation.id,
-                userId: currentUserId,
-                status: "active",
-            });
+                    memberRequests.push({
+                        conversationId: newConversation.id,
+                        userId: currentUserId,
+                        status: "active",
+                    });
 
-            await tx.insert(conversationMemberTable).values(memberRequests);
+                    await tx
+                        .insert(conversationMemberTable)
+                        .values(memberRequests);
 
-            const requests = otherUserIds.map((receiverId) => ({
-                senderId: currentUserId,
-                receiverId,
-                conversationId: newConversation.id,
-            }));
+                    const requests = otherUserIds.map((receiverId) => ({
+                        senderId: currentUserId,
+                        receiverId,
+                        conversationId: newConversation.id,
+                    }));
 
-            await tx.insert(conversationRequestTable).values(requests);
+                    await tx.insert(conversationRequestTable).values(requests);
 
-            return {
-                success: true,
-                data: newConversation,
-            };
-        });
+                    return {
+                        success: true,
+                        data: newConversation,
+                    };
+                },
+            )
+            .catch((err) =>
+                handleError(module, "sendConversationRequestService", err),
+            );
     } catch (err) {
         return internalError(module, "sendConversationRequestService", err);
+    }
+};
+
+export const reviewConversationRequestService = async (
+    userId: string,
+    { requestId, status }: ReviewConversationRequestPayload,
+    conn: DB,
+): Promise<Result<undefined>> => {
+    try {
+        const conversationRequestResult = await getConversationRequest(
+            { userId, requestId },
+            conn,
+        );
+        if (!conversationRequestResult.success) {
+            return conversationRequestResult;
+        }
+
+        const conversationRequest = conversationRequestResult.data;
+
+        return await conn
+            .transaction(async (tx): Promise<Result<undefined>> => {
+                await tx
+                    .delete(conversationRequestTable)
+                    .where(and(eq(conversationRequestTable.id, requestId)));
+
+                if (status === "approve") {
+                    await tx
+                        .update(conversationMemberTable)
+                        .set({
+                            status: "active",
+                        })
+                        .where(
+                            and(
+                                eq(
+                                    conversationMemberTable.conversationId,
+                                    conversationRequest.conversationId,
+                                ),
+                                eq(conversationMemberTable.userId, userId),
+                            ),
+                        );
+
+                    await tx
+                        .update(conversationTable)
+                        .set({
+                            status: "active",
+                        })
+                        .where(
+                            eq(
+                                conversationTable.id,
+                                conversationRequest.conversationId,
+                            ),
+                        );
+                }
+
+                if (status === "reject") {
+                    const deleteConversationMemberResult =
+                        await deleteConversationMember(
+                            {
+                                conversationId:
+                                    conversationRequest.conversationId,
+                                userId: userId,
+                            },
+                            tx,
+                        );
+                    if (!deleteConversationMemberResult.success) {
+                        throw new ApiError(deleteConversationMemberResult);
+                    }
+
+                    const [memberCount] = await tx
+                        .select({ count: count() })
+                        .from(conversationMemberTable)
+                        .where(
+                            eq(
+                                conversationMemberTable.conversationId,
+                                conversationRequest.conversationId,
+                            ),
+                        );
+                    if (memberCount === undefined) {
+                        throw new ApiError(
+                            internalError(
+                                module,
+                                "reviewConversationRequestService",
+                                "Unexpected value",
+                            ),
+                        );
+                    }
+
+                    if (memberCount.count <= 1) {
+                        const deleteConversationResult =
+                            await deleteConversation(
+                                conversationRequest.conversationId,
+                                tx,
+                            );
+                        if (!deleteConversationResult.success) {
+                            throw new ApiError(deleteConversationResult);
+                        }
+                    }
+                }
+
+                return {
+                    success: true,
+                    data: undefined,
+                };
+            })
+            .catch((err) =>
+                handleError(module, "reviewConversationRequestService", err),
+            );
+    } catch (err) {
+        return internalError(module, "reviewConversationRequestService", err);
+    }
+};
+
+export const getConversationRequest = async (
+    { requestId, userId }: { requestId: string; userId?: string },
+    conn: DB,
+): Promise<Result<ConversationRequest>> => {
+    try {
+        const [conversationRequest] = await conn
+            .select()
+            .from(conversationRequestTable)
+            .where(
+                userId
+                    ? and(
+                          eq(conversationRequestTable.id, requestId),
+                          eq(conversationRequestTable.receiverId, userId),
+                      )
+                    : eq(conversationRequestTable.id, requestId),
+            );
+
+        if (!conversationRequest) {
+            return notFoundError("Conversation request not found");
+        }
+
+        return {
+            success: true,
+            data: conversationRequest,
+        };
+    } catch (err) {
+        return internalError(module, "getConversationRequest", err);
+    }
+};
+
+export const deleteConversationMember = async (
+    payload: DeleteConversationMemberPayload,
+    conn: DB,
+): Promise<Result<undefined>> => {
+    try {
+        const whereClause =
+            "conversationId" in payload
+                ? and(
+                      eq(
+                          conversationMemberTable.conversationId,
+                          payload.conversationId,
+                      ),
+                      eq(conversationMemberTable.userId, payload.userId),
+                  )
+                : eq(conversationMemberTable.id, payload.conversationMemberId);
+
+        await conn.delete(conversationMemberTable).where(whereClause);
+
+        return {
+            success: true,
+            data: undefined,
+        };
+    } catch (err) {
+        return internalError(module, "deleteConversationMember", err);
+    }
+};
+
+export const deleteConversation = async (
+    conversationId: string,
+    conn: DB,
+): Promise<Result<undefined>> => {
+    try {
+        await conn
+            .delete(conversationTable)
+            .where(eq(conversationTable.id, conversationId));
+
+        return {
+            success: true,
+            data: undefined,
+        };
+    } catch (err) {
+        return internalError(module, "deleteConversation", err);
     }
 };
 
@@ -178,10 +385,6 @@ export const conversationListService = async (
             "other_member",
         );
         const otherUserTable = aliasedTable(usersTable, "other_user");
-        const lastReadMessage = aliasedTable(
-            messagesTable,
-            "last_read_message",
-        );
 
         const latestMessageSubquery = conn
             .select({
@@ -205,7 +408,7 @@ export const conversationListService = async (
                     eq(messagesTable.conversationId, conversationTable.id),
                     gt(
                         messagesTable.createdAt,
-                        sql`COALESCE(${lastReadMessage.createdAt}, to_timestamp(0))`,
+                        sql`COALESCE(${conversationMemberTable.lastReadAt}, to_timestamp(0))`,
                     ),
                     ne(messagesTable.senderId, userId),
                 ),
@@ -247,13 +450,6 @@ export const conversationListService = async (
             .leftJoin(
                 otherUserTable,
                 eq(otherMemberTable.userId, otherUserTable.id),
-            )
-            .leftJoin(
-                lastReadMessage,
-                eq(
-                    conversationMemberTable.lastReadMessageId,
-                    lastReadMessage.id,
-                ),
             )
             .where(
                 and(

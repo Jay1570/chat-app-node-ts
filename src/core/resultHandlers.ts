@@ -1,5 +1,5 @@
 import { HttpStatusCode } from "../config/HttpStatusCodes.js";
-import { ErrorResult } from "../types/Result.js";
+import { ApiError, ErrorResult } from "../types/Result.js";
 
 export const internalError = (
     module: string,
@@ -27,4 +27,26 @@ export const validationError = (err: unknown): ErrorResult => {
             error: err,
         },
     };
+};
+
+export const notFoundError = (message: string): ErrorResult => {
+    return {
+        success: false,
+        error: {
+            code: HttpStatusCode.NOT_FOUND,
+            message: message,
+        },
+    };
+};
+
+export const handleError = (
+    module: string,
+    method: string,
+    error?: unknown,
+): ErrorResult => {
+    if (error instanceof ApiError) {
+        return error.error;
+    }
+
+    return internalError(module, method, error);
 };

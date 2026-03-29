@@ -14,6 +14,6 @@ const db = drizzle(env.DB_URL, {
     },
 });
 
-export type DB = typeof db;
+export type DB = Omit<typeof db, "$client">;
 
 export default db;

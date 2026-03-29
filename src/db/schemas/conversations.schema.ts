@@ -1,13 +1,13 @@
 import {
     pgEnum,
     pgTable,
+    timestamp,
     uniqueIndex,
     uuid,
     varchar,
 } from "drizzle-orm/pg-core";
 import { timestampsColumns } from "./commonColumns.schema.js";
 import { usersTable } from "./users.schema.js";
-import { messagesTable } from "./messages.schema.js";
 import { InferInsertModel } from "drizzle-orm";
 
 export const conversationTypeEnum = pgEnum("conversation_type_enum", [
@@ -34,13 +34,11 @@ export const conversationMemberTable = pgTable(
         id: uuid().defaultRandom().primaryKey(),
         conversationId: uuid("conversation_id")
             .notNull()
-            .references(() => conversationTable.id),
+            .references(() => conversationTable.id, { onDelete: "cascade" }),
         userId: uuid("user_id")
             .notNull()
-            .references(() => usersTable.id),
-        lastReadMessageId: uuid("last_read_message_id").references(
-            () => messagesTable.id,
-        ),
+            .references(() => usersTable.id, { onDelete: "cascade" }),
+        lastReadAt: timestamp("last_read_at", { withTimezone: true }),
         status: conversationStatusEnum().notNull().default("pending"),
         ...timestampsColumns,
     },
@@ -58,10 +56,10 @@ export const conversationRequestTable = pgTable(
         id: uuid().defaultRandom().primaryKey(),
         senderId: uuid("sender_id")
             .notNull()
-            .references(() => usersTable.id),
+            .references(() => usersTable.id, { onDelete: "cascade" }),
         receiverId: uuid("receiver_id")
             .notNull()
-            .references(() => usersTable.id),
+            .references(() => usersTable.id, { onDelete: "cascade" }),
         conversationId: uuid()
             .notNull()
             .references(() => conversationTable.id, { onDelete: "cascade" }),

@@ -1,0 +1,5 @@
+ALTER TABLE "conversation_member" DROP CONSTRAINT "conversation_member_last_read_message_id_messages_id_fkey";--> statement-breakpoint
+ALTER TABLE "conversation_member" ADD COLUMN "last_read_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "conversation_member" DROP COLUMN "last_read_message_id";--> statement-breakpoint
+ALTER TABLE "conversation_request" DROP CONSTRAINT "conversation_request_sender_id_users_id_fkey", ADD CONSTRAINT "conversation_request_sender_id_users_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "users"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "conversation_request" DROP CONSTRAINT "conversation_request_receiver_id_users_id_fkey", ADD CONSTRAINT "conversation_request_receiver_id_users_id_fkey" FOREIGN KEY ("receiver_id") REFERENCES "users"("id") ON DELETE CASCADE;
