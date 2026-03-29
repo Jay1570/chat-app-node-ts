@@ -58,7 +58,6 @@ export const sendConversationRequestService = async (
             return validationError("Some users do not exist");
         }
 
-        
         if (conversationType === "direct") {
             const otherUserId = otherUserIds[0];
             const cm1 = aliasedTable(conversationMemberTable, "cm1");
@@ -198,20 +197,19 @@ export const conversationListService = async (
             .limit(1)
             .as("latest_message");
 
-        const unreadCountSubQuery = conn
-            .select({ id: count() })
+        const unreadCountSubQuery = sql<{ count: number }>`${conn
+            .select({ count: count() })
             .from(messagesTable)
             .where(
                 and(
                     eq(messagesTable.conversationId, conversationTable.id),
                     gt(
                         messagesTable.createdAt,
-                        sql`COALESCE (${lastReadMessage.createdAt}, to_timestamp(0))`,
+                        sql`COALESCE(${lastReadMessage.createdAt}, to_timestamp(0))`,
                     ),
                     ne(messagesTable.senderId, userId),
                 ),
-            )
-            .as("unread_count");
+            )}`;
 
         const query = (await conn
             .select({
@@ -224,7 +222,7 @@ export const conversationListService = async (
                 lastMessageByUserId: latestMessageSubquery.senderId,
                 lastMessageAt: latestMessageSubquery.createdAt,
                 senderName: usersTable.name,
-                unreadCount: unreadCountSubQuery.id,
+                unreadCount: unreadCountSubQuery,
             })
             .from(conversationTable)
             .innerJoin(

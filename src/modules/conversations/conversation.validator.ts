@@ -6,7 +6,13 @@ import { RequestConversationPayload } from "../../types/Conversation.js";
 
 const conversationRequestSchema = z
     .object({
-        userIds: z.array(z.uuid()).min(1, "Please provide at least 1 userId"),
+        userIds: z
+            .array(z.uuid())
+            .min(1, "Please provide at least 1 userId")
+            .refine((items) => new Set(items).size === items.length, {
+                message:
+                    "All items must be unique, no duplicate values allowed", // Custom error message
+            }),
         conversationType: z.enum(["group", "direct"]),
         conversationName: z
             .union([z.string().trim().min(1, "Required"), z.null()])

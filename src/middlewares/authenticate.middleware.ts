@@ -17,7 +17,7 @@ export const authenticateToken = async (
 
         const tokenResult = verifyToken(token);
         if (!tokenResult.success) {
-            return next(tokenResult.error);
+            return next(tokenResult);
         }
         if (!tokenResult.data.id) {
             return sendUnauthorized(res);
@@ -28,7 +28,7 @@ export const authenticateToken = async (
             if (userResult.error.code === 404) {
                 return sendUnauthorized(res);
             }
-            return next(userResult.error);
+            return next(userResult);
         }
 
         req.user = userResult.data;
