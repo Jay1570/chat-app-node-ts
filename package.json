@@ -4,11 +4,11 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "dev": "tsx watch src/server.ts",
+        "dev": "bun --watch src/server.ts",
         "build": "tsc",
-        "start": "node dist/server.js",
-        "db:generate": "npx drizzle-kit generate",
-        "db:migrate": "npx drizzle-kit migrate",
+        "start": "bun dist/server.js",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
         "lint": "eslint ."
     },
     "keywords": [],
@@ -21,7 +21,7 @@
         "cors": "^2.8.6",
         "dayjs": "^1.11.20",
         "dotenv": "^17.3.1",
-        "drizzle-orm": "^1.0.0-beta.15-859cf75",
+        "drizzle-orm": "^1.0.0-beta.22",
         "express": "^5.2.1",
         "jsonwebtoken": "^9.0.3",
         "pg": "^8.18.0",
@@ -37,12 +37,11 @@
         "@types/pg": "^8.16.0",
         "@typescript-eslint/eslint-plugin": "^8.55.0",
         "@typescript-eslint/parser": "^8.56.0",
-        "drizzle-kit": "^1.0.0-beta.15-859cf75",
-        "eslint": "^10.0.1",
-        "globals": "^17.3.0",
+        "drizzle-kit": "^1.0.0-beta.23",
+        "eslint": "^10.2.0",
+        "globals": "^17.4.0",
         "jiti": "^2.6.1",
-        "tsx": "^4.21.0",
-        "typescript": "^5.9.3",
-        "typescript-eslint": "^8.56.0"
+        "typescript": "^6.x.x",
+        "typescript-eslint": "^8.58.1"
     }
 }
