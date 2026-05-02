@@ -1,15 +1,14 @@
 import js from "@eslint/js";
 import globals from "globals";
-import tseslint, { parser } from "typescript-eslint";
+import tseslint from "typescript-eslint";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
+    js.configs.recommended,
+    ...tseslint.configs.strict,
     {
         files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
-        plugins: { js },
-        extends: ["js/recommended"],
         languageOptions: {
-            parser,
             ecmaVersion: 2022,
             sourceType: "module", // Explicitly set source type to module
             globals: {
@@ -20,6 +19,9 @@ export default defineConfig([
                 __filename: "readonly",
             },
         },
+    },
+    {
+        files: ["**/*.{ts,mts,cts}"],
         rules: {
             // Additional custom rules can be added here
             // Example: require "use strict" directives if needed in specific function scopes (optional in ESM)
@@ -34,9 +36,7 @@ export default defineConfig([
             ],
         },
     },
-    js.configs.recommended,
-    tseslint.configs.strict,
     {
-        ignores: ["dist", "node_modules", "drizzle.config.ts"],
+        ignores: ["dist/", "node_modules/", "drizzle.config.ts"],
     },
 ]);
