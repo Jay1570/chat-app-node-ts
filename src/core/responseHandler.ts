@@ -43,3 +43,20 @@ export const sendError = (res: Response, error: ErrorResult): Response => {
         error: error.error.error,
     });
 };
+
+export const getHttpStatusLine = (error: ErrorResult): string => {
+    const body = JSON.stringify({
+        success: false,
+        message: error.error.message,
+        statusCode: error.error.code,
+    });
+
+    return (
+        `HTTP/1.1 ${error.error.code} ${error.error.message}\r\n` +
+        "Content-Type: application/json\r\n" +
+        "Connection: close\r\n" +
+        `Content-Length: ${Buffer.byteLength(body)}\r\n` +
+        "\r\n" +
+        body
+    );
+};

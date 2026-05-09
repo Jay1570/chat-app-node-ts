@@ -13,9 +13,13 @@ import { ErrorResult } from "./types/Result.js";
 import { HttpStatusCode } from "./config/HttpStatusCodes.js";
 import { requestContextMiddleware } from "./middlewares/requestContext.middleware.js";
 import { logger } from "./core/logger.js";
+import http from "http";
+import { authenticateWebSocket } from "./middlewares/authenticate.middleware.js";
 
 const app: Application = express();
 const port = env.PORT || 8000;
+
+const server = http.createServer(app);
 
 app.use(cors());
 app.use(express.json());
@@ -68,6 +72,8 @@ process.on("uncaughtException", (err) => {
     process.exit(1);
 });
 
-app.listen(port, () => {
+server.on("upgrade", authenticateWebSocket);
+
+server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
