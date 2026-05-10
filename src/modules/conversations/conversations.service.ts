@@ -19,6 +19,7 @@ import {
 import { messagesTable } from "../../db/schemas/messages.schema.js";
 import { usersTable } from "../../db/schemas/users.schema.js";
 import {
+    forbiddenError,
     handleError,
     internalError,
     notFoundError,
@@ -525,5 +526,52 @@ export const conversationListService = async (
         };
     } catch (err) {
         return internalError(module, "conversationListService", err);
+    }
+};
+
+export const checkConversationAccess = async (
+    userId: string,
+    conversationId: string,
+    db: DB,
+): Promise<Result<{ userIds: string[] }>> => {
+    try {
+        const [membership] = await db
+            .select({
+                userId: conversationMemberTable.userId,
+            })
+            .from(conversationMemberTable)
+            .where(
+                and(
+                    eq(conversationMemberTable.conversationId, conversationId),
+                    eq(conversationMemberTable.userId, userId),
+                    eq(conversationMemberTable.status, "active"),
+                ),
+            )
+            .limit(1);
+
+        if (!membership) {
+            return forbiddenError("Access denied");
+        }
+
+        const members = await db
+            .select({
+                userId: conversationMemberTable.userId,
+            })
+            .from(conversationMemberTable)
+            .where(
+                and(
+                    eq(conversationMemberTable.conversationId, conversationId),
+                    eq(conversationMemberTable.status, "active"),
+                ),
+            );
+
+        return {
+            success: true,
+            data: {
+                userIds: members.map((v) => v.userId),
+            },
+        };
+    } catch (err) {
+        return internalError(module, "checkConversationAccess", err);
     }
 };

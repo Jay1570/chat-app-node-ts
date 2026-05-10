@@ -3,7 +3,10 @@ import http from "http";
 
 const connections = new Map<string, Set<WebSocket>>();
 
-export const connectionRegistry = (ws: WebSocket, _req: http.IncomingMessage) => {
+export const connectionRegistry = (
+    ws: WebSocket,
+    _req: http.IncomingMessage,
+) => {
     const userId = ws.user!.id;
 
     const existing = connections.get(userId);
@@ -26,5 +29,25 @@ export const connectionRegistry = (ws: WebSocket, _req: http.IncomingMessage) =>
         }
 
         console.log("online users:", connections.size);
+    });
+};
+
+export const sendToUser = (userId: string | string[], payload: unknown) => {
+    if (typeof userId !== "string") {
+        userId.forEach((u) => {
+            sendToUser(u, payload);
+        });
+        return;
+    }
+    const sockets = connections.get(userId);
+
+    if (!sockets) return;
+
+    const message = JSON.stringify(payload);
+
+    sockets.forEach((ws) => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(message);
+        }
     });
 };

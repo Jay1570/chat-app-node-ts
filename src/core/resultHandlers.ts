@@ -39,6 +39,16 @@ export const notFoundError = (message: string): ErrorResult => {
     };
 };
 
+export const forbiddenError = (message: string): ErrorResult => {
+    return {
+        success: false,
+        error: {
+            code: HttpStatusCode.FORBIDDEN,
+            message: message,
+        },
+    };
+};
+
 export const handleError = (
     module: string,
     method: string,
