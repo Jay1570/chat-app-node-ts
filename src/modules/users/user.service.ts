@@ -1,20 +1,20 @@
 import { eq, inArray } from "drizzle-orm";
-import { type DB } from "../../db/db.js";
+import { type DB } from "@/db/db.js";
 import {
     basicUserSelect,
     usersTable,
     userWithoutPasswordSelect,
-} from "../../db/schemas/users.schema.js";
+} from "@/db/schemas/users.schema.js";
 import type {
     BasicUser,
     RegisterUserPayload,
     User,
     UserWithoutPassword,
-} from "../../types/User.js";
-import type { Result } from "../../types/Result.js";
-import { hashPassword } from "../../utils/hashPassword.js";
-import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
-import { internalError } from "../../core/resultHandlers.js";
+} from "@/types/User.js";
+import type { Result } from "@/types/Result.js";
+import { hashPassword } from "@/utils/hashPassword.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { internalError } from "@/core/resultHandlers.js";
 
 const module = "user.service";
 

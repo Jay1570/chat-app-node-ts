@@ -1,20 +1,20 @@
 import express, { type Request, type Response } from "express";
 import type { Application, NextFunction } from "express";
-import env from "./config/env.js";
+import env from "@/config/env.js";
 import cors from "cors";
-import router from "./routes.js";
-import { requestLogger } from "./middlewares/logger.middleware.js";
+import router from "@/routes.js";
+import { requestLogger } from "@/middlewares/logger.middleware.js";
 import {
     sendError,
     sendResponse,
     sendServerError,
-} from "./core/responseHandler.js";
-import { ErrorResult } from "./types/Result.js";
-import { HttpStatusCode } from "./config/HttpStatusCodes.js";
-import { requestContextMiddleware } from "./middlewares/requestContext.middleware.js";
-import { logger } from "./core/logger.js";
+} from "@/core/responseHandler.js";
+import { ErrorResult } from "@/types/Result.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { requestContextMiddleware } from "@/middlewares/requestContext.middleware.js";
+import { logger } from "@/core/logger.js";
 import http from "http";
-import { authenticateWebSocket } from "./middlewares/authenticate.middleware.js";
+import { authenticateWebSocket } from "@/middlewares/authenticate.middleware.js";
 
 const app: Application = express();
 const port = env.PORT || 8000;

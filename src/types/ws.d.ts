@@ -1,5 +1,5 @@
 import "ws";
-import { UserWithoutPassword } from "./User.ts";
+import { UserWithoutPassword } from "@/types/User.ts";
 
 declare module "ws" {
     interface WebSocket {

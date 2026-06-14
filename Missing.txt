@@ -24,3 +24,5 @@
    * API Documentation: There is no Swagger or OpenAPI specification to help frontend developers integrate with the API.
    * Rate Limiting: The API is currently open to abuse (e.g., spamming the sendMessage endpoint).
    * Logout/Session Revocation: The app uses JWT, but there's no mechanism to "logout" (revoke a token) or handle refresh tokens.
+
+  5. Flutter(mobile) & React(web) frontend

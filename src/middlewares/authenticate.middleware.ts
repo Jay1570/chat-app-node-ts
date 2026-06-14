@@ -2,15 +2,15 @@ import type { NextFunction, Response } from "express";
 import {
     getHttpStatusLine,
     sendUnauthorized,
-} from "../core/responseHandler.js";
-import { verifyToken } from "../utils/jwtHelpers.js";
-import { getUserById } from "../modules/users/user.service.js";
-import type { AuthRequest } from "../types/AuthRequest.js";
-import db from "../db/db.js";
-import { HttpStatusCode } from "../config/HttpStatusCodes.js";
+} from "@/core/responseHandler.js";
+import { verifyToken } from "@/utils/jwtHelpers.js";
+import { getUserById } from "@/modules/users/user.service.js";
+import type { AuthRequest } from "@/types/AuthRequest.js";
+import db from "@/db/db.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
 import http from "http";
 import Stream from "stream";
-import webSocketServer from "../websocket/index.js";
+import webSocketServer from "@/websocket/index.js";
 
 export const authenticateToken = async (
     req: AuthRequest,

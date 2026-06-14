@@ -15,16 +15,16 @@ import {
     conversationMemberTable,
     conversationRequestTable,
     ConversationMemberInsertRequest,
-} from "../../db/schemas/conversations.schema.js";
-import { messagesTable } from "../../db/schemas/messages.schema.js";
-import { usersTable } from "../../db/schemas/users.schema.js";
+} from "@/db/schemas/conversations.schema.js";
+import { messagesTable } from "@/db/schemas/messages.schema.js";
+import { usersTable } from "@/db/schemas/users.schema.js";
 import {
     forbiddenError,
     handleError,
     internalError,
     notFoundError,
     validationError,
-} from "../../core/resultHandlers.js";
+} from "@/core/resultHandlers.js";
 import {
     ConversationForList,
     ConversationListQueryRow,
@@ -33,12 +33,12 @@ import {
     DeleteConversationMemberPayload,
     RequestConversationPayload,
     ReviewConversationRequestPayload,
-} from "../../types/Conversation.js";
-import { ApiError, Result } from "../../types/Result.js";
-import { DB } from "../../db/db.js";
-import { getAllUserByIds } from "../users/user.service.js";
-import { mapOneToMany } from "../../utils/dbUtils.js";
-import { BasicUser } from "../../types/User.js";
+} from "@/types/Conversation.js";
+import { ApiError, Result } from "@/types/Result.js";
+import { DB } from "@/db/db.js";
+import { getAllUserByIds } from "@/modules/users/user.service.js";
+import { mapOneToMany } from "@/utils/dbUtils.js";
+import { BasicUser } from "@/types/User.js";
 
 const module = "conversation.service";
 

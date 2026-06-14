@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import dayjs from "dayjs";
-import env from "../config/env.js";
-import { getRequestId } from "./requestContext.js";
+import env from "@/config/env.js";
+import { getRequestId } from "@/core/requestContext.js";
 
 type Level = "info" | "error" | "warn" | "debug";
 

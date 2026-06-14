@@ -1,6 +1,6 @@
 import { WebSocketServer } from "ws";
-import { connectionRegistry } from "./registry.js";
-import { heartBeatConnection } from "./heartbeat.js";
+import { connectionRegistry } from "@/websocket/registry.js";
+import { heartBeatConnection } from "@/websocket/heartbeat.js";
 
 const webSocketServer = new WebSocketServer({
     noServer: true,

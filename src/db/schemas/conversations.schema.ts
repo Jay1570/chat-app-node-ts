@@ -6,8 +6,8 @@ import {
     uuid,
     varchar,
 } from "drizzle-orm/pg-core";
-import { timestampsColumns } from "./commonColumns.schema.js";
-import { usersTable } from "./users.schema.js";
+import { timestampsColumns } from "@/db/schemas/commonColumns.schema.js";
+import { usersTable } from "@/db/schemas/users.schema.js";
 import { InferInsertModel } from "drizzle-orm";
 
 export const conversationTypeEnum = pgEnum("conversation_type_enum", [

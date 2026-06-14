@@ -1,19 +1,19 @@
-import { AuthRequest } from "../../types/AuthRequest.js";
+import { AuthRequest } from "@/types/AuthRequest.js";
 import type { NextFunction, Response } from "express";
 import {
     conversationListService,
     reviewConversationRequestService,
     sendConversationRequestService,
-} from "./conversations.service.js";
-import db from "../../db/db.js";
-import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
-import { sendResponse } from "../../core/responseHandler.js";
-import { validationError } from "../../core/resultHandlers.js";
+} from "@/modules/conversations/conversations.service.js";
+import db from "@/db/db.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { sendResponse } from "@/core/responseHandler.js";
+import { validationError } from "@/core/resultHandlers.js";
 import {
     conversationRequestPayload,
     reviewConversationRequestPayload,
-} from "./conversation.validator.js";
-import { validatePayload } from "../../core/validator.js";
+} from "@/modules/conversations/conversation.validator.js";
+import { validatePayload } from "@/core/validator.js";
 
 export const conversationListController = async (
     req: AuthRequest,

@@ -1,7 +1,7 @@
 import type { Response } from "express";
-import type { HttpResponse } from "../types/response.js";
-import type { ErrorResult } from "../types/Result.js";
-import { HttpStatusCode } from "../config/HttpStatusCodes.js";
+import type { HttpResponse } from "@/types/response.js";
+import type { ErrorResult } from "@/types/Result.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
 
 export const sendResponse = <T>(
     res: Response,

@@ -1,4 +1,4 @@
-import type { Result } from "../types/Result.js";
+import type { Result } from "@/types/Result.js";
 import bcrypt from "bcrypt";
 
 export const hashPassword = async (

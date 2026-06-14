@@ -1,5 +1,5 @@
 import "http";
-import { UserWithoutPassword } from "./User.ts";
+import { UserWithoutPassword } from "@/types/User.ts";
 
 declare module "http" {
     interface IncomingMessage {

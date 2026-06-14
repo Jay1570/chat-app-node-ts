@@ -1,7 +1,7 @@
 import * as z from "zod/v4";
-import { Result } from "../types/Result.js";
-import { validationError } from "./resultHandlers.js";
-import { normalizeZodError } from "../utils/formatters.js";
+import { Result } from "@/types/Result.js";
+import { validationError } from "@/core/resultHandlers.js";
+import { normalizeZodError } from "@/utils/formatters.js";
 
 export const validatePayload = <T extends z.ZodSchema>(
     schema: T,

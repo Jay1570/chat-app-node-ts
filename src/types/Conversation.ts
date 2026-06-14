@@ -1,4 +1,4 @@
-import { BasicUser } from "./User.js";
+import { BasicUser } from "@/types/User.js";
 
 export type ConversationForList = {
     id: string;

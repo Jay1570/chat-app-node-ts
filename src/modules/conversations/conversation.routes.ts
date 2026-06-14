@@ -1,10 +1,10 @@
 import express, { Router } from "express";
-import { authenticateToken } from "../../middlewares/authenticate.middleware.js";
+import { authenticateToken } from "@/middlewares/authenticate.middleware.js";
 import {
     conversationListController,
     reviewConversationRequest,
     sendConversationRequest,
-} from "./conversations.controller.js";
+} from "@/modules/conversations/conversations.controller.js";
 
 const conversationRouter: Router = express.Router();
 

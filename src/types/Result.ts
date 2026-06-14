@@ -1,4 +1,4 @@
-import type { HttpStatusCode } from "../config/HttpStatusCodes.js";
+import type { HttpStatusCode } from "@/config/HttpStatusCodes.js";
 
 export type Result<T> = SuccessResult<T> | ErrorResult;
 

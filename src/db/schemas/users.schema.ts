@@ -1,5 +1,5 @@
 import { pgTable, uuid, varchar, text, unique } from "drizzle-orm/pg-core";
-import { timestampsColumns } from "./commonColumns.schema.js";
+import { timestampsColumns } from "@/db/schemas/commonColumns.schema.js";
 
 export const usersTable = pgTable(
     "users",

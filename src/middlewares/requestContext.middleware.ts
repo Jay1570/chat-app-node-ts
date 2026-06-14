@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
-import { requestContext } from "../core/requestContext.js";
+import { requestContext } from "@/core/requestContext.js";
 
 export const requestContextMiddleware = (
     _req: Request,

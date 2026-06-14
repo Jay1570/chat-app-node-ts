@@ -1,5 +1,5 @@
-import { HttpStatusCode } from "../config/HttpStatusCodes.js";
-import { ApiError, ErrorResult } from "../types/Result.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { ApiError, ErrorResult } from "@/types/Result.js";
 
 export const internalError = (
     module: string,

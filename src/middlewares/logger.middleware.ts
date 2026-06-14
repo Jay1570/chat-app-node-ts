@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { getRequestId } from "../core/requestContext.js";
-import { logger } from "../core/logger.js";
+import { getRequestId } from "@/core/requestContext.js";
+import { logger } from "@/core/logger.js";
 
 const SENSITIVE_PARAMS = ["token", "password", "api_key", "code", "secret"];
 

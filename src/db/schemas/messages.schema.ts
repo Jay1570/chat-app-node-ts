@@ -1,7 +1,7 @@
 import { boolean, index, pgTable, text, uuid } from "drizzle-orm/pg-core";
-import { timestampsColumns } from "./commonColumns.schema.js";
-import { conversationTable } from "./conversations.schema.js";
-import { usersTable } from "./users.schema.js";
+import { timestampsColumns } from "@/db/schemas/commonColumns.schema.js";
+import { conversationTable } from "@/db/schemas/conversations.schema.js";
+import { usersTable } from "@/db/schemas/users.schema.js";
 import { desc } from "drizzle-orm";
 
 export const messagesTable = pgTable(

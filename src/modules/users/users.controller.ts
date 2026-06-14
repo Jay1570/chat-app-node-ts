@@ -1,15 +1,15 @@
 import type { NextFunction, Request, Response } from "express";
-import { loginPayload, registerUserPayload } from "./users.validator.js";
-import { sendResponse } from "../../core/responseHandler.js";
-import { getUserByEmail, insertUser } from "./user.service.js";
-import { signJWT } from "../../utils/jwtHelpers.js";
-import type { User } from "../../types/User.js";
-import { comparePasswords } from "../../utils/hashPassword.js";
-import type { AuthRequest } from "../../types/AuthRequest.js";
-import { HttpStatusCode } from "../../config/HttpStatusCodes.js";
-import { ErrorResult } from "../../types/Result.js";
-import db from "../../db/db.js";
-import { validatePayload } from "../../core/validator.js";
+import { loginPayload, registerUserPayload } from "@/modules/users/users.validator.js";
+import { sendResponse } from "@/core/responseHandler.js";
+import { getUserByEmail, insertUser } from "@/modules/users/user.service.js";
+import { signJWT } from "@/utils/jwtHelpers.js";
+import type { User } from "@/types/User.js";
+import { comparePasswords } from "@/utils/hashPassword.js";
+import type { AuthRequest } from "@/types/AuthRequest.js";
+import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { ErrorResult } from "@/types/Result.js";
+import db from "@/db/db.js";
+import { validatePayload } from "@/core/validator.js";
 
 export const registerUser = async (
     req: Request,
