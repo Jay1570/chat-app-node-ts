@@ -17,6 +17,10 @@ export const registerUserPayload = z.object({
         ),
 });
 
-export const loginPayload = registerUserPayload.omit({
-    name: true,
+export const loginPayload = z.object({
+    email: z.email("Invalid email"),
+    password: z
+        .string()
+        .trim()
+        .max(255, "password should be less than 255 characters"),
 });
