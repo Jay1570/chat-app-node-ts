@@ -2,11 +2,16 @@ import env from "@/config/env.js";
 import type { Result } from "@/types/Result.js";
 import type { JwtUserPayload } from "@/types/User.js";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 export const signJWT = (payload: JwtUserPayload): string => {
     return jwt.sign(payload, env.JWT_SECRET, {
-        expiresIn: "2h",
+        expiresIn: "15m",
     });
+};
+
+export const generateRefreshToken = (): string => {
+    return crypto.randomBytes(40).toString("hex");
 };
 
 export const verifyToken = (token: string): Result<JwtUserPayload> => {
@@ -23,3 +28,4 @@ export const verifyToken = (token: string): Result<JwtUserPayload> => {
         };
     }
 };
+

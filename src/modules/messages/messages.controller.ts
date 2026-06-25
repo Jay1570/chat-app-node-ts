@@ -4,8 +4,14 @@ import { validationError } from "@/core/resultHandlers.js";
 import { checkConversationAccess } from "@/modules/conversations/conversations.service.js";
 import db from "@/db/db.js";
 import { validatePayload } from "@/core/validator.js";
-import { messageCreatePayload } from "@/modules/messages/messages.validator.js";
-import { createMessageService } from "@/modules/messages/messages.service.js";
+import {
+    messageCreatePayload,
+    messageListPayload,
+} from "@/modules/messages/messages.validator.js";
+import {
+    messageCreateService,
+    messageListService,
+} from "@/modules/messages/messages.service.js";
 import { sendToUser } from "@/websocket/registry.js";
 import { sendResponse } from "@/core/responseHandler.js";
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
@@ -39,8 +45,8 @@ export const sendMessageController = async (
             return next(conversationAccessResult);
         }
 
-        const messageResult = await createMessageService(
-            req.user!.id,
+        const messageResult = await messageCreateService(
+            req.user!,
             conversationId as string,
             payloadValidation.data,
             db,
@@ -59,6 +65,58 @@ export const sendMessageController = async (
             message: "Message sent",
             statusCode: HttpStatusCode.OK,
             data: messageResult.data,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+export const listMessageController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const { conversationId } = req.params;
+
+        if (!conversationId) {
+            return next(validationError("Conversation id is required"));
+        }
+
+        const messageQueryValidationResult = validatePayload(
+            messageListPayload,
+            req.query,
+        );
+        if (!messageQueryValidationResult.success) {
+            return next(messageQueryValidationResult);
+        }
+
+        const query = messageQueryValidationResult.data;
+
+        const conversationAccessResult = await checkConversationAccess(
+            req.user!.id,
+            conversationId as string,
+            db,
+        );
+        if (!conversationAccessResult.success) {
+            return next(conversationAccessResult);
+        }
+
+        const messagesListResult = await messageListService(
+            db,
+            conversationId as string,
+            query.cursor,
+            query.limit,
+        );
+        if (!messagesListResult.success) {
+            return next(messagesListResult);
+        }
+
+        return sendResponse(res, {
+            success: true,
+            message: "Messages retrieved successfully",
+            statusCode: HttpStatusCode.OK,
+            data: messagesListResult.data,
         });
     } catch (err) {
         return next(err);

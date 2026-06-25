@@ -13,7 +13,7 @@ export const messagesTable = pgTable(
             .references(() => conversationTable.id, { onDelete: "cascade" }),
         senderId: uuid()
             .notNull()
-            .references(() => usersTable.id, { onDelete: "cascade" }),
+            .references(() => usersTable.id, { onDelete: "set null" }),
         content: text().notNull(),
         isEdited: boolean("is_edited").default(false).notNull(),
         isDeleted: boolean("is_deleted").default(false).notNull(),
@@ -27,3 +27,7 @@ export const messagesTable = pgTable(
         index("messages_sender_idx").on(table.senderId),
     ],
 );
+
+export const messagesSelect = {
+    ...messagesTable
+};

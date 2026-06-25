@@ -8,10 +8,10 @@ import {
 import db from "@/db/db.js";
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
 import { sendResponse } from "@/core/responseHandler.js";
-import { validationError } from "@/core/resultHandlers.js";
 import {
     conversationRequestPayload,
     reviewConversationRequestPayload,
+    conversationListPayload,
 } from "@/modules/conversations/conversation.validator.js";
 import { validatePayload } from "@/core/validator.js";
 
@@ -21,15 +21,22 @@ export const conversationListController = async (
     next: NextFunction,
 ) => {
     try {
-        const { search } = req.query;
-
-        if (search && typeof search !== "string") {
-            return next(validationError("Invalid value for search"));
+        const validateQueryResult = validatePayload(
+            conversationListPayload,
+            req.query,
+        );
+        if (!validateQueryResult.success) {
+            return next(validateQueryResult);
         }
+
+        const query = validateQueryResult.data;
 
         const conversationListResult = await conversationListService(
             req.user!.id,
-            search || null,
+            query.search || null,
+            query.cursor || null,
+            query.cursorId || null,
+            query.limit,
             db,
         );
         if (!conversationListResult.success) {

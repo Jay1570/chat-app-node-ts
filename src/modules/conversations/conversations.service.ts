@@ -9,6 +9,7 @@ import {
     sql,
     count,
     gt,
+    lt,
 } from "drizzle-orm";
 import {
     conversationTable,
@@ -34,7 +35,7 @@ import {
     RequestConversationPayload,
     ReviewConversationRequestPayload,
 } from "@/types/Conversation.js";
-import { ApiError, Result } from "@/types/Result.js";
+import { ApiError, ResultAsync } from "@/types/Result.js";
 import { DB } from "@/db/db.js";
 import { getAllUserByIds } from "@/modules/users/user.service.js";
 import { mapOneToMany } from "@/utils/dbUtils.js";
@@ -50,7 +51,7 @@ export const sendConversationRequestService = async (
         conversationName,
     }: RequestConversationPayload,
     conn: DB,
-): Promise<Result<{ id: string; type: ConversationType }>> => {
+): ResultAsync<{ id: string; type: ConversationType }> => {
     try {
         const userIds = new Set(otherUserIds);
 
@@ -128,7 +129,7 @@ export const sendConversationRequestService = async (
             .transaction(
                 async (
                     tx,
-                ): Promise<Result<{ id: string; type: ConversationType }>> => {
+                ): ResultAsync<{ id: string; type: ConversationType }> => {
                     const [newConversation] = await tx
                         .insert(conversationTable)
                         .values({
@@ -193,7 +194,7 @@ export const reviewConversationRequestService = async (
     userId: string,
     { requestId, status }: ReviewConversationRequestPayload,
     conn: DB,
-): Promise<Result<undefined>> => {
+): ResultAsync<undefined> => {
     try {
         const conversationRequestResult = await getConversationRequest(
             { userId, requestId },
@@ -206,7 +207,7 @@ export const reviewConversationRequestService = async (
         const conversationRequest = conversationRequestResult.data;
 
         return await conn
-            .transaction(async (tx): Promise<Result<undefined>> => {
+            .transaction(async (tx): ResultAsync<undefined> => {
                 await tx
                     .delete(conversationRequestTable)
                     .where(and(eq(conversationRequestTable.id, requestId)));
@@ -301,7 +302,7 @@ export const reviewConversationRequestService = async (
 export const getConversationRequest = async (
     { requestId, userId }: { requestId: string; userId?: string },
     conn: DB,
-): Promise<Result<ConversationRequest>> => {
+): ResultAsync<ConversationRequest> => {
     try {
         const [conversationRequest] = await conn
             .select()
@@ -331,7 +332,7 @@ export const getConversationRequest = async (
 export const deleteConversationMember = async (
     payload: DeleteConversationMemberPayload,
     conn: DB,
-): Promise<Result<undefined>> => {
+): ResultAsync<undefined> => {
     try {
         const whereClause =
             "conversationId" in payload
@@ -358,7 +359,7 @@ export const deleteConversationMember = async (
 export const deleteConversation = async (
     conversationId: string,
     conn: DB,
-): Promise<Result<undefined>> => {
+): ResultAsync<undefined> => {
     try {
         await conn
             .delete(conversationTable)
@@ -376,8 +377,15 @@ export const deleteConversation = async (
 export const conversationListService = async (
     userId: string,
     search: string | null,
+    cursor: string | null,
+    cursorId: string | null,
+    limit: number,
     conn: DB,
-): Promise<Result<ConversationForList[]>> => {
+): ResultAsync<{
+    conversations: ConversationForList[];
+    nextCursor: string | null;
+    nextCursorId: string | null;
+}> => {
     try {
         const searchPattern = `%${search ?? ""}%`;
 
@@ -461,11 +469,28 @@ export const conversationListService = async (
                         ilike(conversationTable.name, searchPattern),
                         ilike(otherUserTable.name, searchPattern),
                     ),
+                    cursor && cursorId
+                        ? or(
+                              lt(
+                                  latestMessageSubquery.createdAt,
+                                  new Date(cursor),
+                              ),
+                              and(
+                                  eq(
+                                      latestMessageSubquery.createdAt,
+                                      new Date(cursor),
+                                  ),
+                                  lt(conversationTable.id, cursorId),
+                              ),
+                          )
+                        : undefined,
                 ),
             )
             .orderBy(
                 desc(latestMessageSubquery.createdAt),
-            )) as ConversationListQueryRow[];
+                desc(conversationTable.id),
+            )
+            .limit(limit + 1)) as ConversationListQueryRow[];
 
         const processedData = mapOneToMany<
             ConversationListQueryRow,
@@ -520,9 +545,19 @@ export const conversationListService = async (
             }),
         );
 
+        const hasMore = finalConversations.length > limit;
+        const data = hasMore
+            ? finalConversations.slice(0, limit)
+            : finalConversations;
+        const last = data[data.length - 1];
+
         return {
             success: true,
-            data: finalConversations,
+            data: {
+                conversations: data,
+                nextCursor: hasMore ? last!.lastMessageAt : null,
+                nextCursorId: hasMore ? last!.id : null,
+            },
         };
     } catch (err) {
         return internalError(module, "conversationListService", err);
@@ -533,26 +568,8 @@ export const checkConversationAccess = async (
     userId: string,
     conversationId: string,
     db: DB,
-): Promise<Result<{ userIds: string[] }>> => {
+): ResultAsync<{ userIds: string[] }> => {
     try {
-        const [membership] = await db
-            .select({
-                userId: conversationMemberTable.userId,
-            })
-            .from(conversationMemberTable)
-            .where(
-                and(
-                    eq(conversationMemberTable.conversationId, conversationId),
-                    eq(conversationMemberTable.userId, userId),
-                    eq(conversationMemberTable.status, "active"),
-                ),
-            )
-            .limit(1);
-
-        if (!membership) {
-            return forbiddenError("Access denied");
-        }
-
         const members = await db
             .select({
                 userId: conversationMemberTable.userId,
@@ -564,6 +581,10 @@ export const checkConversationAccess = async (
                     eq(conversationMemberTable.status, "active"),
                 ),
             );
+
+        if (!members.some((m) => m.userId === userId)) {
+            return forbiddenError("Access denied");
+        }
 
         return {
             success: true,

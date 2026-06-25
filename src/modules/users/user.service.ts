@@ -11,7 +11,7 @@ import type {
     User,
     UserWithoutPassword,
 } from "@/types/User.js";
-import type { Result } from "@/types/Result.js";
+import type { ResultAsync } from "@/types/Result.js";
 import { hashPassword } from "@/utils/hashPassword.js";
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
 import { internalError } from "@/core/resultHandlers.js";
@@ -21,7 +21,7 @@ const module = "user.service";
 export const getUserById = async (
     userId: string,
     conn: DB,
-): Promise<Result<UserWithoutPassword>> => {
+): ResultAsync<UserWithoutPassword> => {
     try {
         const [user]: UserWithoutPassword[] = await conn
             .select(userWithoutPasswordSelect)
@@ -49,7 +49,7 @@ export const getUserByEmail = async (
     email: string,
     fetchPassword: boolean,
     conn: DB,
-): Promise<Result<UserWithoutPassword | User>> => {
+): ResultAsync<UserWithoutPassword | User> => {
     try {
         const [user]: UserWithoutPassword[] | User[] = await conn
             .select(fetchPassword ? usersTable : userWithoutPasswordSelect)
@@ -79,7 +79,7 @@ export const getUserByEmail = async (
 export const insertUser = async (
     { email, name, password }: RegisterUserPayload,
     conn: DB,
-): Promise<Result<UserWithoutPassword>> => {
+): ResultAsync<UserWithoutPassword> => {
     try {
         const userByEmailResult = await getUserByEmail(email, false, conn);
         if (userByEmailResult.success) {
@@ -131,7 +131,7 @@ export const insertUser = async (
 export const getAllUserByIds = async (
     userIds: string[],
     conn: DB,
-): Promise<Result<BasicUser[]>> => {
+): ResultAsync<BasicUser[]> => {
     try {
         const users: BasicUser[] = await conn
             .select(basicUserSelect)

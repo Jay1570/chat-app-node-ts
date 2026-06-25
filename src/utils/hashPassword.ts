@@ -1,9 +1,7 @@
-import type { Result } from "@/types/Result.js";
+import type { ResultAsync } from "@/types/Result.js";
 import bcrypt from "bcrypt";
 
-export const hashPassword = async (
-    password: string,
-): Promise<Result<string>> => {
+export const hashPassword = async (password: string): ResultAsync<string> => {
     try {
         const hashed = await bcrypt.hash(password, 10);
         return {
@@ -25,7 +23,7 @@ export const hashPassword = async (
 export const comparePasswords = async (
     password: string,
     hashedPassword: string,
-): Promise<Result<boolean>> => {
+): ResultAsync<boolean> => {
     try {
         const matched = await bcrypt.compare(password, hashedPassword);
         return {

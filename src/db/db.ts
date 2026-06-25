@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import env from "@/config/env.js";
 import { logger } from "@/core/logger.js";
+import { sql } from "drizzle-orm";
 
 const db = drizzle(env.DB_URL, {
     logger: {
@@ -15,5 +16,7 @@ const db = drizzle(env.DB_URL, {
 });
 
 export type DB = Omit<typeof db, "$client">;
+
+await db.execute(sql`SELECT 1 + 1 AS result`);
 
 export default db;

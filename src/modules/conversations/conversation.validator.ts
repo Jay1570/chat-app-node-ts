@@ -41,3 +41,10 @@ export const reviewConversationRequestPayload = z.object({
     requestId: z.uuid(),
     status: z.enum(["approve", "reject"]),
 });
+
+export const conversationListPayload = z.object({
+    search: z.string().optional(),
+    cursor: z.iso.datetime().optional(), // lastMessageAt of last item
+    cursorId: z.uuid().optional(), // id of last item (tie-breaker)
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+});

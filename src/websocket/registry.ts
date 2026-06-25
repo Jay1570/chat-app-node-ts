@@ -27,8 +27,6 @@ export const connectionRegistry = (
         if (sockets.size === 0) {
             connections.delete(userId);
         }
-
-        console.log("online users:", connections.size);
     });
 };
 

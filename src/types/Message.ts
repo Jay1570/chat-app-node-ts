@@ -1,6 +1,8 @@
+import { BasicUser } from "@/types/User.js";
+
 export type MessageCreatePayload = {
     content: string;
-}
+};
 
 export type Message = {
     id: string;
@@ -8,6 +10,7 @@ export type Message = {
     updatedAt: Date;
     conversationId: string;
     senderId: string;
+    sender: BasicUser | null;
     content: string;
     isEdited: boolean;
     isDeleted: boolean;
