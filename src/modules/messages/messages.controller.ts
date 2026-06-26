@@ -1,7 +1,10 @@
 import { NextFunction, Response } from "express";
 import { AuthRequest } from "@/types/AuthRequest.js";
 import { validationError } from "@/core/resultHandlers.js";
-import { checkConversationAccess } from "@/modules/conversations/conversations.service.js";
+import {
+    checkConversationAccess,
+    getMemberReadStatusService,
+} from "@/modules/conversations/conversations.service.js";
 import db from "@/db/db.js";
 import { validatePayload } from "@/core/validator.js";
 import {
@@ -27,6 +30,9 @@ export const sendMessageController = async (
         if (!conversationId) {
             return next(validationError("Conversation id is required"));
         }
+        if (typeof conversationId !== "string") {
+            return next(validationError("Invalid conversation id"));
+        }
 
         const payloadValidation = validatePayload(
             messageCreatePayload,
@@ -38,7 +44,7 @@ export const sendMessageController = async (
 
         const conversationAccessResult = await checkConversationAccess(
             req.user!.id,
-            conversationId as string,
+            conversationId,
             db,
         );
         if (!conversationAccessResult.success) {
@@ -47,7 +53,7 @@ export const sendMessageController = async (
 
         const messageResult = await messageCreateService(
             req.user!,
-            conversationId as string,
+            conversationId,
             payloadValidation.data,
             db,
         );
@@ -82,6 +88,9 @@ export const listMessageController = async (
         if (!conversationId) {
             return next(validationError("Conversation id is required"));
         }
+        if (typeof conversationId !== "string") {
+            return next(validationError("Invalid conversation id"));
+        }
 
         const messageQueryValidationResult = validatePayload(
             messageListPayload,
@@ -95,28 +104,37 @@ export const listMessageController = async (
 
         const conversationAccessResult = await checkConversationAccess(
             req.user!.id,
-            conversationId as string,
+            conversationId,
             db,
         );
         if (!conversationAccessResult.success) {
             return next(conversationAccessResult);
         }
 
-        const messagesListResult = await messageListService(
-            db,
-            conversationId as string,
-            query.cursor,
-            query.limit,
-        );
+        const [messagesListResult, readStatusResult] = await Promise.all([
+            messageListService(
+                db,
+                conversationId,
+                query.cursor,
+                query.limit,
+            ),
+            getMemberReadStatusService(db, conversationId),
+        ]);
         if (!messagesListResult.success) {
             return next(messagesListResult);
+        }
+        if (!readStatusResult.success) {
+            return next(readStatusResult);
         }
 
         return sendResponse(res, {
             success: true,
             message: "Messages retrieved successfully",
             statusCode: HttpStatusCode.OK,
-            data: messagesListResult.data,
+            data: {
+                messages: messagesListResult.data,
+                readStatus: readStatusResult.data,
+            },
         });
     } catch (err) {
         return next(err);

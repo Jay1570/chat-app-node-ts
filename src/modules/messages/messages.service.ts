@@ -13,10 +13,10 @@ export const messageCreateService = async (
     user: UserWithoutPassword,
     conversationId: string,
     payload: MessageCreatePayload,
-    db: DB,
+    conn: DB,
 ): ResultAsync<Message> => {
     try {
-        const [message] = await db
+        const [message] = await conn
             .insert(messagesTable)
             .values({
                 content: payload.content,
@@ -44,13 +44,13 @@ export const messageCreateService = async (
 };
 
 export const messageListService = async (
-    db: DB,
+    conn: DB,
     conversationId: string,
     cursor?: string,
     limit: number = 50,
 ): ResultAsync<Message[]> => {
     try {
-        const messageList = await db
+        const messageList = await conn
             .select({
                 id: messagesTable.id,
                 conversationId: messagesTable.conversationId,

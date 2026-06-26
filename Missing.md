@@ -3,7 +3,8 @@
 ## 1. Critical Missing Functionality
 
 - [x] Message History Retrieval
-- [ ] Read Status / Marking as Read: `last_read_at` column exists but no endpoint to update it — `unreadCount` will never decrease
+- [x] Read Status / Marking as Read: `last_read_at` column exists but no endpoint to update it — `unreadCount` will never decrease
+- [x] conversation request listing
 - [ ] Testing Suite: Zero tests (unit, integration, E2E) — crucial for WebSocket events and race conditions
 
 ## 2. High-Priority Chat Features
@@ -18,7 +19,12 @@
 - [ ] Media & File Attachments: Messages restricted to plain text
 - [ ] Message Reactions & Replies: Data model doesn't support emoji reactions or threading
 - [ ] Search: No message search or user discovery
-- [-] Push Notifications: FCM integration(sending notification and firebase integration in backend is pending)
+- [ ] Push Notifications: FCM integration(sending notification and firebase integration in backend is pending)
+    - [x] Databse migrations to store fcm tokens
+    - [x] Create endpoint to store fcm tokens
+    - [ ] integrate firebase messaging in backend
+    - [ ] create a notification queue in a different process to ensure main application is always available
+
 - [ ] Soft Deletes UI: `isDeleted` exists in schema but no "This message was deleted" placeholder logic in API response
 
 ## 4. Technical Debt & Infrastructure

@@ -41,6 +41,8 @@ export type ConversationListQueryRow = {
     unreadCount: number | null;
 };
 
+export type BasicConversation = Pick<ConversationListQueryRow, "id" | "name" | "type">;
+
 export type RequestConversationPayload = {
     userIds: string[];
     conversationType: ConversationType;
@@ -59,6 +61,11 @@ export type ConversationRequest = {
     senderId: string;
     receiverId: string;
     conversationId: string;
+};
+
+export type ConversationRequestForList = ConversationRequest & {
+    sender: BasicUser;
+    conversation: BasicConversation;
 };
 
 export type DeleteConversationMemberPayload =

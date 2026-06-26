@@ -30,6 +30,7 @@ import {
     ConversationForList,
     ConversationListQueryRow,
     ConversationRequest,
+    ConversationRequestForList,
     ConversationType,
     DeleteConversationMemberPayload,
     RequestConversationPayload,
@@ -594,5 +595,122 @@ export const checkConversationAccess = async (
         };
     } catch (err) {
         return internalError(module, "checkConversationAccess", err);
+    }
+};
+
+export const markConversationAsReadService = async (
+    userId: string,
+    conversationId: string,
+    conn: DB,
+): ResultAsync<undefined> => {
+    try {
+        await conn
+            .update(conversationMemberTable)
+            .set({ lastReadAt: new Date() })
+            .where(
+                and(
+                    eq(conversationMemberTable.conversationId, conversationId),
+                    eq(conversationMemberTable.userId, userId),
+                ),
+            );
+
+        return { success: true, data: undefined };
+    } catch (err) {
+        return internalError(module, "markAsRead", err);
+    }
+};
+
+export const getMemberReadStatusService = async (
+    conn: DB,
+    conversationId: string,
+): ResultAsync<{ userId: string; lastReadAt: Date | null }[]> => {
+    try {
+        const members = await conn
+            .select({
+                userId: conversationMemberTable.userId,
+                lastReadAt: conversationMemberTable.lastReadAt,
+            })
+            .from(conversationMemberTable)
+            .where(
+                and(
+                    eq(conversationMemberTable.conversationId, conversationId),
+                    eq(conversationMemberTable.status, "active"),
+                ),
+            );
+
+        return { success: true, data: members };
+    } catch (err) {
+        return internalError(module, "getMemberReadStatusService", err);
+    }
+};
+
+export const getConversationRequestsService = async (
+    userId: string,
+    conn: DB,
+    cursor?: string,
+    limit: number = 20,
+): ResultAsync<{
+    requests: ConversationRequestForList[];
+    nextCursor: string | null;
+}> => {
+    try {
+        const requests = await conn
+            .select({
+                id: conversationRequestTable.id,
+                conversationId: conversationRequestTable.conversationId,
+                senderId: conversationRequestTable.senderId,
+                receiverId: conversationRequestTable.receiverId,
+                createdAt: conversationRequestTable.createdAt,
+                updatedAt: conversationRequestTable.updatedAt,
+                sender: {
+                    id: usersTable.id,
+                    name: usersTable.name,
+                },
+                conversation: {
+                    id: conversationTable.id,
+                    type: conversationTable.type,
+                    name: conversationTable.name,
+                },
+            })
+            .from(conversationRequestTable)
+            .where(
+                cursor
+                    ? and(
+                          eq(conversationRequestTable.receiverId, userId),
+                          lt(
+                              conversationRequestTable.createdAt,
+                              new Date(cursor),
+                          ),
+                      )
+                    : eq(conversationRequestTable.receiverId, userId),
+            )
+            .innerJoin(
+                usersTable,
+                eq(usersTable.id, conversationRequestTable.senderId),
+            )
+            .innerJoin(
+                conversationTable,
+                eq(
+                    conversationTable.id,
+                    conversationRequestTable.conversationId,
+                ),
+            )
+            .orderBy(desc(conversationRequestTable.createdAt))
+            .limit(limit + 1);
+
+        const hasMore = requests.length > limit;
+        const data = hasMore ? requests.slice(0, limit) : requests;
+
+        return {
+            success: true,
+            data: {
+                requests: data,
+                nextCursor: hasMore
+                    ? data[data.length - 1]!.createdAt.toISOString()
+                    : null,
+            },
+        };
+    } catch (err) {
+        return internalError(module, "getConversationRequestsService", err);
     }
 };

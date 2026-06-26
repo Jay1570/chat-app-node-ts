@@ -1,7 +1,10 @@
 import { AuthRequest } from "@/types/AuthRequest.js";
 import type { NextFunction, Response } from "express";
 import {
+    checkConversationAccess,
     conversationListService,
+    getConversationRequestsService,
+    markConversationAsReadService,
     reviewConversationRequestService,
     sendConversationRequestService,
 } from "@/modules/conversations/conversations.service.js";
@@ -12,8 +15,12 @@ import {
     conversationRequestPayload,
     reviewConversationRequestPayload,
     conversationListPayload,
+    conversationRequestListPayload,
 } from "@/modules/conversations/conversation.validator.js";
 import { validatePayload } from "@/core/validator.js";
+import { validationError } from "@/core/resultHandlers.js";
+import { sendToUser } from "@/websocket/registry.js";
+import { WsEvents } from "@/websocket/events.js";
 
 export const conversationListController = async (
     req: AuthRequest,
@@ -40,7 +47,7 @@ export const conversationListController = async (
             db,
         );
         if (!conversationListResult.success) {
-            return next(conversationListResult.error);
+            return next(conversationListResult);
         }
 
         return sendResponse(res, {
@@ -78,6 +85,11 @@ export const sendConversationRequest = async (
         if (!createConversationResult.success) {
             return next(createConversationResult);
         }
+
+        sendToUser(validationResult.data.userIds, {
+            event: WsEvents.conversation.newRequest(),
+            data: createConversationResult.data,
+        });
 
         return sendResponse(res, {
             success: true,
@@ -121,4 +133,72 @@ export const reviewConversationRequest = async (
     } catch (err) {
         return next(err);
     }
+};
+
+export const markAsReadController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+) => {
+    const { conversationId } = req.params;
+    if (!conversationId) {
+        return next(validationError("Conversation id is required"));
+    }
+    if (typeof conversationId !== "string") {
+        return next(validationError("Invalid conversation id"));
+    }
+
+    const user = req.user!;
+
+    const accessResult = await checkConversationAccess(
+        user.id,
+        conversationId,
+        db,
+    );
+    if (!accessResult.success) return next(accessResult);
+
+    const result = await markConversationAsReadService(
+        user.id,
+        conversationId,
+        db,
+    );
+    if (!result.success) return next(result);
+
+    sendToUser(accessResult.data.userIds, {
+        event: WsEvents.conversation.read(conversationId),
+        data: { userId: user.id, readAt: new Date() },
+    });
+
+    return sendResponse(res, {
+        success: true,
+        message: "Marked as read",
+        statusCode: HttpStatusCode.OK,
+    });
+};
+
+export const listConversationRequestsController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+) => {
+    const queryValidation = validatePayload(
+        conversationRequestListPayload,
+        req.query,
+    );
+    if (!queryValidation.success) return next(queryValidation);
+
+    const result = await getConversationRequestsService(
+        req.user!.id,
+        db,
+        queryValidation.data.cursor,
+        queryValidation.data.limit,
+    );
+    if (!result.success) return next(result);
+
+    return sendResponse(res, {
+        success: true,
+        message: "Conversation requests retrieved",
+        statusCode: HttpStatusCode.OK,
+        data: result.data,
+    });
 };

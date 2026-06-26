@@ -48,3 +48,8 @@ export const conversationListPayload = z.object({
     cursorId: z.uuid().optional(), // id of last item (tie-breaker)
     limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+export const conversationRequestListPayload = z.object({
+    cursor: z.iso.datetime().optional(),
+    limit: z.coerce.number().min(1).max(50).default(20),
+});

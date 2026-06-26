@@ -2,6 +2,8 @@ import express, { Router } from "express";
 import { authenticateToken } from "@/middlewares/authenticate.middleware.js";
 import {
     conversationListController,
+    listConversationRequestsController,
+    markAsReadController,
     reviewConversationRequest,
     sendConversationRequest,
 } from "@/modules/conversations/conversations.controller.js";
@@ -9,6 +11,8 @@ import {
 const conversationRouter: Router = express.Router();
 
 conversationRouter.get("/", authenticateToken, conversationListController);
+
+conversationRouter.get("/requests", listConversationRequestsController);
 
 conversationRouter.post(
     "/send-request",
@@ -21,5 +25,7 @@ conversationRouter.post(
     authenticateToken,
     reviewConversationRequest,
 );
+
+conversationRouter.patch("/:conversationId/read", markAsReadController);
 
 export default conversationRouter;
