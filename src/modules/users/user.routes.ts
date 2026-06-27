@@ -7,6 +7,7 @@ import {
     refreshTokens,
     logoutUser,
     updateFcmToken,
+    discoverUsersController,
 } from "@/modules/users/users.controller.js";
 
 const userRouter: Router = express.Router();
@@ -17,6 +18,7 @@ userRouter.post("/login", loginUser);
 userRouter.post("/refresh", refreshTokens);
 userRouter.post("/logout", authenticateToken, logoutUser);
 userRouter.post("/fcm-token", authenticateToken, updateFcmToken);
+userRouter.post("/discover", authenticateToken, discoverUsersController);
 
 export default userRouter;
 

@@ -26,4 +26,5 @@ export const userWithoutPasswordSelect = {
 export const basicUserSelect = {
     id: usersTable.id,
     name: usersTable.name,
+    imageUrl: usersTable.imageUrl,
 };

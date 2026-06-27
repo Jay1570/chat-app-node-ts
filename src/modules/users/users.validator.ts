@@ -43,3 +43,8 @@ export const fcmTokenPayload = z.object({
     deviceId: z.string().trim().min(1, "deviceId is required"),
 });
 
+export const discoverUsersPayload = z.object({
+    search: z.string().min(1),
+    cursor: z.iso.datetime().optional(),
+    limit: z.coerce.number().min(1).max(50).default(20),
+});

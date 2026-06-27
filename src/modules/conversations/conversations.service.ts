@@ -18,7 +18,7 @@ import {
     ConversationMemberInsertRequest,
 } from "@/db/schemas/conversations.schema.js";
 import { messagesTable } from "@/db/schemas/messages.schema.js";
-import { usersTable } from "@/db/schemas/users.schema.js";
+import { basicUserSelect, usersTable } from "@/db/schemas/users.schema.js";
 import {
     forbiddenError,
     handleError,
@@ -311,9 +311,9 @@ export const getConversationRequest = async (
             .where(
                 userId
                     ? and(
-                          eq(conversationRequestTable.id, requestId),
-                          eq(conversationRequestTable.receiverId, userId),
-                      )
+                        eq(conversationRequestTable.id, requestId),
+                        eq(conversationRequestTable.receiverId, userId),
+                    )
                     : eq(conversationRequestTable.id, requestId),
             );
 
@@ -338,12 +338,12 @@ export const deleteConversationMember = async (
         const whereClause =
             "conversationId" in payload
                 ? and(
-                      eq(
-                          conversationMemberTable.conversationId,
-                          payload.conversationId,
-                      ),
-                      eq(conversationMemberTable.userId, payload.userId),
-                  )
+                    eq(
+                        conversationMemberTable.conversationId,
+                        payload.conversationId,
+                    ),
+                    eq(conversationMemberTable.userId, payload.userId),
+                )
                 : eq(conversationMemberTable.id, payload.conversationMemberId);
 
         await conn.delete(conversationMemberTable).where(whereClause);
@@ -431,8 +431,10 @@ export const conversationListService = async (
                 type: conversationTable.type,
                 otherUserId: otherUserTable.id,
                 otherUserName: otherUserTable.name,
+                otherUserImageUrl: otherUserTable.imageUrl,
                 lastMessage: latestMessageSubquery.content,
                 lastMessageByUserId: latestMessageSubquery.senderId,
+                senderImagerUrl: usersTable.imageUrl,
                 lastMessageAt: latestMessageSubquery.createdAt,
                 senderName: usersTable.name,
                 unreadCount: unreadCountSubQuery,
@@ -472,18 +474,18 @@ export const conversationListService = async (
                     ),
                     cursor && cursorId
                         ? or(
-                              lt(
-                                  latestMessageSubquery.createdAt,
-                                  new Date(cursor),
-                              ),
-                              and(
-                                  eq(
-                                      latestMessageSubquery.createdAt,
-                                      new Date(cursor),
-                                  ),
-                                  lt(conversationTable.id, cursorId),
-                              ),
-                          )
+                            lt(
+                                latestMessageSubquery.createdAt,
+                                new Date(cursor),
+                            ),
+                            and(
+                                eq(
+                                    latestMessageSubquery.createdAt,
+                                    new Date(cursor),
+                                ),
+                                lt(conversationTable.id, cursorId),
+                            ),
+                        )
                         : undefined,
                 ),
             )
@@ -511,9 +513,10 @@ export const conversationListService = async (
                 lastMessageByUserId: row.lastMessageByUserId,
                 lastMessageByUser: row.lastMessageByUserId
                     ? {
-                          id: row.lastMessageByUserId,
-                          name: row.senderName || "Unknown User",
-                      }
+                        id: row.lastMessageByUserId,
+                        name: row.senderName || "Unknown User",
+                        imageUrl: row.senderImageUrl,
+                    }
                     : null,
                 lastMessageAt: row.lastMessageAt?.toISOString() || null,
                 otherUsers: [],
@@ -525,6 +528,7 @@ export const conversationListService = async (
                 return {
                     id: row.otherUserId,
                     name: row.otherUserName || "Unknown User",
+                    imageUrl: row.otherUserImageUrl,
                 };
             },
         });
@@ -663,8 +667,7 @@ export const getConversationRequestsService = async (
                 createdAt: conversationRequestTable.createdAt,
                 updatedAt: conversationRequestTable.updatedAt,
                 sender: {
-                    id: usersTable.id,
-                    name: usersTable.name,
+                    ...basicUserSelect,
                 },
                 conversation: {
                     id: conversationTable.id,
@@ -676,12 +679,12 @@ export const getConversationRequestsService = async (
             .where(
                 cursor
                     ? and(
-                          eq(conversationRequestTable.receiverId, userId),
-                          lt(
-                              conversationRequestTable.createdAt,
-                              new Date(cursor),
-                          ),
-                      )
+                        eq(conversationRequestTable.receiverId, userId),
+                        lt(
+                            conversationRequestTable.createdAt,
+                            new Date(cursor),
+                        ),
+                    )
                     : eq(conversationRequestTable.receiverId, userId),
             )
             .innerJoin(

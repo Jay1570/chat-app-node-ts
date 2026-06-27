@@ -16,4 +16,4 @@ export type RegisterUserPayload = Pick<User, "name" | "email" | "password">;
 
 export type LoginPayload = Pick<User, "email" | "password">;
 
-export type BasicUser = Pick<User, "id" | "name">;
+export type BasicUser = Pick<User, "id" | "name" | "imageUrl">;

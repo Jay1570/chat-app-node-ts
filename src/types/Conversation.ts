@@ -34,10 +34,12 @@ export type ConversationListQueryRow = {
     type: ConversationType;
     otherUserId: string | null;
     otherUserName: string | null;
+    otherUserImageUrl: string | null;
     lastMessage: string | null;
     lastMessageByUserId: string | null;
     lastMessageAt: Date | null;
     senderName: string | null;
+    senderImageUrl: string | null;
     unreadCount: number | null;
 };
 
@@ -70,9 +72,9 @@ export type ConversationRequestForList = ConversationRequest & {
 
 export type DeleteConversationMemberPayload =
     | {
-          userId: string;
-          conversationId: string;
-      }
+        userId: string;
+        conversationId: string;
+    }
     | {
-          conversationMemberId: string;
-      };
+        conversationMemberId: string;
+    };

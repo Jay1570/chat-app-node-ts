@@ -1,7 +1,7 @@
 import { internalError } from "@/core/resultHandlers.js";
 import { DB } from "@/db/db.js";
 import { messagesTable } from "@/db/schemas/messages.schema.js";
-import { usersTable } from "@/db/schemas/users.schema.js";
+import { basicUserSelect, usersTable } from "@/db/schemas/users.schema.js";
 import { Message, MessageCreatePayload } from "@/types/Message.js";
 import { ResultAsync } from "@/types/Result.js";
 import { UserWithoutPassword } from "@/types/User.js";
@@ -35,6 +35,7 @@ export const messageCreateService = async (
                 sender: {
                     id: user.id,
                     name: user.name,
+                    imageUrl: user.imageUrl,
                 },
             },
         };
@@ -61,8 +62,7 @@ export const messageListService = async (
                 updatedAt: messagesTable.updatedAt,
                 createdAt: messagesTable.createdAt,
                 sender: {
-                    id: usersTable.id,
-                    name: usersTable.name,
+                    ...basicUserSelect,
                 },
             })
             .from(messagesTable)

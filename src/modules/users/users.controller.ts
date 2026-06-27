@@ -4,9 +4,10 @@ import {
     registerUserPayload,
     refreshPayload,
     fcmTokenPayload,
+    discoverUsersPayload,
 } from "@/modules/users/users.validator.js";
 import { sendResponse } from "@/core/responseHandler.js";
-import { getUserByEmail, insertUser } from "@/modules/users/user.service.js";
+import { discoverUsersService, getUserByEmail, insertUser } from "@/modules/users/user.service.js";
 import { signJWT, generateRefreshToken } from "@/utils/jwtHelpers.js";
 import type { User } from "@/types/User.js";
 import { comparePasswords } from "@/utils/hashPassword.js";
@@ -305,5 +306,39 @@ export const currentUser = async (req: AuthRequest, res: Response) => {
         success: true,
         data: req.user!,
     });
+};
+
+export const discoverUsersController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const queryValidation = validatePayload(
+            discoverUsersPayload,
+            req.query,
+        );
+        if (!queryValidation.success) return next(queryValidation);
+
+        const { search, cursor, limit } = queryValidation.data;
+
+        const result = await discoverUsersService(
+            req.user!.id,
+            search,
+            cursor,
+            limit,
+            db,
+        );
+        if (!result.success) return next(result);
+
+        return sendResponse(res, {
+            success: true,
+            message: "Users fetched successfully",
+            statusCode: HttpStatusCode.OK,
+            data: result.data,
+        });
+    } catch (err) {
+        return next(err);
+    }
 };
 
