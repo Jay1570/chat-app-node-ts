@@ -5,8 +5,10 @@
     "main": "index.js",
     "scripts": {
         "dev": "bun --watch src/server.ts",
+        "dev:worker": "bun --watch src/worker/index.ts",
         "build": "tsc",
         "start": "bun dist/server.js",
+        "worker": "bun run dist/src/worker/index.js",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "lint": "eslint ."
@@ -23,6 +25,7 @@
         "dotenv": "^17.4.2",
         "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
         "express": "^5.2.1",
+        "firebase-admin": "^14.1.0",
         "jsonwebtoken": "^9.0.3",
         "pg": "^8.22.0",
         "ws": "^8.21.0",
@@ -40,7 +43,7 @@
         "@typescript-eslint/eslint-plugin": "^8.62.0",
         "@typescript-eslint/parser": "^8.62.0",
         "drizzle-kit": "^1.0.0-rc.4-ca0f029",
-        "eslint": "^10.5.0",
+        "eslint": "^10.6.0",
         "globals": "^17.7.0",
         "jiti": "^2.7.0",
         "typescript": "^6.0.3",

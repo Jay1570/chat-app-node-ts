@@ -16,89 +16,67 @@ export type FcmToken = typeof fcmTokensTable.$inferSelect;
 export const createOrUpdateRefreshToken = async (
     userId: string,
     deviceId: string,
-    token: string,
+    tokenHash: string,
     expiresAt: Date,
     deviceName: string | undefined,
     os: string | undefined,
     conn: DB,
 ): ResultAsync<RefreshToken> => {
     try {
-        const [existing] = await conn
-            .select()
-            .from(refreshTokensTable)
-            .where(
-                and(
-                    eq(refreshTokensTable.userId, userId),
-                    eq(refreshTokensTable.deviceId, deviceId),
-                ),
-            )
-            .limit(1);
 
-        let resultToken: RefreshToken;
-
-        if (existing) {
-            const [updated] = await conn
-                .update(refreshTokensTable)
-                .set({
-                    token,
+        const [refreshToken] = await conn
+            .insert(refreshTokensTable)
+            .values({
+                userId,
+                deviceId,
+                token: tokenHash,
+                expiresAt,
+                deviceName,
+                os,
+            })
+            .onConflictDoUpdate({
+                target: [
+                    refreshTokensTable.userId,
+                    refreshTokensTable.deviceId,
+                ],
+                set: {
+                    token: tokenHash,
                     expiresAt,
-                    deviceName: deviceName ?? existing.deviceName,
-                    os: os ?? existing.os,
-                    updatedAt: new Date(),
-                })
-                .where(eq(refreshTokensTable.id, existing.id))
-                .returning();
-
-            if (!updated) {
-                return {
-                    success: false,
-                    error: {
-                        code: HttpStatusCode.INTERNAL_SERVER_ERROR,
-                        message: "Failed to update refresh token",
-                    },
-                };
-            }
-            resultToken = updated;
-        } else {
-            const [inserted] = await conn
-                .insert(refreshTokensTable)
-                .values({
-                    userId,
-                    deviceId,
-                    token,
                     deviceName,
                     os,
-                    expiresAt,
-                })
-                .returning();
+                    updatedAt: new Date(),
+                },
+            })
+            .returning();
 
-            if (!inserted) {
-                return {
-                    success: false,
-                    error: {
-                        code: HttpStatusCode.INTERNAL_SERVER_ERROR,
-                        message: "Failed to create refresh token",
-                    },
-                };
-            }
-            resultToken = inserted;
+        if (!refreshToken) {
+            return {
+                success: false,
+                error: {
+                    code: HttpStatusCode.INTERNAL_SERVER_ERROR,
+                    message: "Failed to create/update refresh token",
+                },
+            };
         }
 
-        return { success: true, data: resultToken };
+        return {
+            success: true,
+            data: refreshToken,
+        };
     } catch (err) {
         return internalError(module, "createOrUpdateRefreshToken", err);
     }
 };
 
 export const getRefreshTokenByToken = async (
-    token: string,
+    tokenHash: string,
     conn: DB,
 ): ResultAsync<RefreshToken> => {
     try {
         const [session] = await conn
             .select()
             .from(refreshTokensTable)
-            .where(eq(refreshTokensTable.token, token))
+            .where(eq(refreshTokensTable.token, tokenHash))
             .limit(1);
 
         if (!session) {

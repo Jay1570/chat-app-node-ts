@@ -6,13 +6,17 @@ import crypto from "crypto";
 
 export const signJWT = (payload: JwtUserPayload): string => {
     return jwt.sign(payload, env.JWT_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "1h",
     });
 };
 
 export const generateRefreshToken = (): string => {
     return crypto.randomBytes(40).toString("hex");
 };
+
+export const hashRefreshToken = (refreshToken: string): string => {
+    return crypto.hash("sha256", refreshToken)
+}
 
 export const verifyToken = (token: string): Result<JwtUserPayload> => {
     try {

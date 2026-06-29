@@ -16,6 +16,10 @@ const env = {
     DB_URL: process.env.DB_URL,
     PORT: process.env.PORT,
     JWT_SECRET: process.env.JWT_SECRET,
+    FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+    VALKEY_URL: process.env.VALKEY_URL,
 } as const;
 
 export default env;

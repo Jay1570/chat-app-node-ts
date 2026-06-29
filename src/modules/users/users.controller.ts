@@ -8,7 +8,7 @@ import {
 } from "@/modules/users/users.validator.js";
 import { sendResponse } from "@/core/responseHandler.js";
 import { discoverUsersService, getUserByEmail, insertUser } from "@/modules/users/user.service.js";
-import { signJWT, generateRefreshToken } from "@/utils/jwtHelpers.js";
+import { signJWT, generateRefreshToken, hashRefreshToken } from "@/utils/jwtHelpers.js";
 import type { User } from "@/types/User.js";
 import { comparePasswords } from "@/utils/hashPassword.js";
 import type { AuthRequest } from "@/types/AuthRequest.js";
@@ -130,12 +130,13 @@ export const loginUser = async (
 
         const accessToken = signJWT({ id: safeUser.id });
         const refreshToken = generateRefreshToken();
+        const refreshTokenHash = hashRefreshToken(refreshToken);
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
         const tokenResult = await createOrUpdateRefreshToken(
             safeUser.id,
             payload.deviceId,
-            refreshToken,
+            refreshTokenHash,
             expiresAt,
             payload.deviceName,
             payload.os,
@@ -172,8 +173,9 @@ export const refreshTokens = async (
         }
 
         const payload = result.data;
+        const tokenHash = hashRefreshToken(payload.refreshToken);
 
-        const tokenResult = await getRefreshTokenByToken(payload.refreshToken, db);
+        const tokenResult = await getRefreshTokenByToken(tokenHash, db);
         if (!tokenResult.success) {
             return next(tokenResult);
         }
@@ -204,12 +206,13 @@ export const refreshTokens = async (
 
         const newAccessToken = signJWT({ id: session.userId });
         const newRefreshToken = generateRefreshToken();
+        const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
         const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
         const updateResult = await createOrUpdateRefreshToken(
             session.userId,
             payload.deviceId,
-            newRefreshToken,
+            newRefreshTokenHash,
             newExpiresAt,
             payload.deviceName,
             payload.os,

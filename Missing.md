@@ -19,6 +19,8 @@
 - [ ] Media & File Attachments: Messages restricted to plain text
 - [ ] Message Reactions & Replies: Data model doesn't support emoji reactions or threading
 - [ ] Search: No message search or user discovery
+    - [x] User discovery
+    - [ ] Message Search
 - [ ] Push Notifications: FCM integration(sending notification and firebase integration in backend is pending)
     - [x] Databse migrations to store fcm tokens
     - [x] Create endpoint to store fcm tokens
@@ -40,9 +42,10 @@
 - [x] Create Login and registration screen
 - [x] setup Firebase messaging and crashlytics
 - [x] setup web socket
-- [ ] create conversation list screen
+- [x] create conversation list screen
 - [ ] create message screen
 - [ ] create user settings screen
 - [ ] create profile screen
 - [ ] create conversation details screen
 - [ ] create conversation requests screen with approve/reject functionality
+- [ ] create user discovery screen

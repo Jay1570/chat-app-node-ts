@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "rootDir": "./src",
+        "rootDir": ".",
         "outDir": "./dist",
         "module": "nodenext",
         "moduleResolution": "nodenext",
@@ -31,10 +31,10 @@
         "moduleDetection": "force",
         "skipLibCheck": true,
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
         }
     },
-    "include": ["src"],
+    "include": ["src", "src/worker"],
     "exclude": [
         "node_modules/",
         "dist/",

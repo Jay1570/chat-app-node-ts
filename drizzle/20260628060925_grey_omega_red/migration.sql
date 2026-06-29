@@ -1,0 +1,2 @@
+ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_device_unique" UNIQUE("user_id","device_id");--> statement-breakpoint
+ALTER TABLE "messages" DROP CONSTRAINT "messages_senderId_users_id_fkey", ADD CONSTRAINT "messages_senderId_users_id_fkey" FOREIGN KEY ("senderId") REFERENCES "users"("id") ON DELETE SET NULL;
