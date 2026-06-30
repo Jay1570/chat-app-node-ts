@@ -21,6 +21,8 @@ import { validatePayload } from "@/core/validator.js";
 import { validationError } from "@/core/resultHandlers.js";
 import { sendToUser } from "@/websocket/registry.js";
 import { WsEvents } from "@/websocket/events.js";
+import { enqueueNotification } from "@/queue/notification.producer.js";
+import { logger } from "@/core/logger.js";
 
 export const conversationListController = async (
     req: AuthRequest,
@@ -91,6 +93,18 @@ export const sendConversationRequest = async (
             data: createConversationResult.data,
         });
 
+        const conversation = createConversationResult.data;
+
+        enqueueNotification(
+            "conversation_request",
+            validationResult.data.userIds,
+            {
+                title: "New conversation request",
+                body: `${req.user!.name} requested to chat with you`,
+                data: { conversationId: conversation.id },
+            },
+        ).catch((e) => logger.error("Failed to enqueue notification:", e));
+
         return sendResponse(res, {
             success: true,
             statusCode: HttpStatusCode.CREATED,
@@ -124,6 +138,15 @@ export const reviewConversationRequest = async (
         if (!result.success) {
             return next(result);
         }
+
+        enqueueNotification("request_reviewed", [result.data.senderId], {
+            title:
+                validationResult.data.status === "approve"
+                    ? "Request accepted"
+                    : "Request declined",
+            body: `${req.user!.name} ${validationResult.data.status === "approve" ? "accepted" : "declined"} your request`,
+            data: { conversationId: validationResult.data.requestId },
+        }).catch((e) => logger.error("Failed to enqueue notification:", e));
 
         return sendResponse(res, {
             success: true,

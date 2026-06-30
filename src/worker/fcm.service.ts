@@ -1,10 +1,14 @@
 // worker/fcm.service.ts
 import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { FidMulticastMessage, getMessaging } from "firebase-admin/messaging";
+import { FidMulticastMessage, getMessaging, MulticastMessage } from "firebase-admin/messaging";
 import db from "@/db/db.js";
-import { inArray } from "drizzle-orm";
-import { fcmTokensTable } from "@/db/schemas/auth.schema.js";
+import { and, eq, gt, inArray } from "drizzle-orm";
+import {
+    fcmTokensTable,
+    refreshTokensTable,
+} from "@/db/schemas/auth.schema.js";
 import env from "@/config/env.js";
+import { logger } from "@/core/logger.js";
 
 if (!getApps().length) {
     initializeApp({
@@ -23,16 +27,27 @@ export const sendFcmNotification = async (
     const devices = await db
         .select({ fcmToken: fcmTokensTable.fcmToken })
         .from(fcmTokensTable)
-        .where(inArray(fcmTokensTable.userId, userIds));
+        .innerJoin(
+            refreshTokensTable,
+            eq(refreshTokensTable.deviceId, fcmTokensTable.deviceId),
+        )
+        .where(
+            and(
+                inArray(fcmTokensTable.userId, userIds),
+                gt(refreshTokensTable.expiresAt, new Date()),
+            ),
+        );
 
     const tokens = devices
         .map((d) => d.fcmToken)
         .filter((t): t is string => t !== null);
 
+    console.log(tokens, devices, userIds);
+
     if (tokens.length === 0) return;
 
-    const message: FidMulticastMessage = {
-        fids: tokens,
+    const message: MulticastMessage = {
+        tokens,
         notification: {
             title: payload.title,
             body: payload.body,
@@ -42,7 +57,7 @@ export const sendFcmNotification = async (
             notification: {
                 title: payload.title,
                 body: payload.body,
-                icon: "/icons/icon-192x192.png",
+                icon: "/icons/Icon-192.png",
             },
         },
         apns: {
@@ -54,12 +69,30 @@ export const sendFcmNotification = async (
         },
     };
 
+    const tokensToRemove: string[] = [];
+
     const response = await getMessaging().sendEachForMulticast(message);
 
     // log failed tokens
     response.responses.forEach((resp, idx) => {
         if (!resp.success) {
-            console.error(`FCM failed for token ${tokens[idx]}:`, resp.error);
+            // const errorCode = resp.error?.code;
+            if (resp.error?.httpResponse?.status == 404) {
+                tokensToRemove.push(tokens[idx]!);
+            } else {
+                console.error(
+                    `FCM failed for token ${tokens[idx]}:`,
+                    resp.error,
+                );
+            }
+        } else {
+            logger.debug(`FCM finished for token ${tokens[idx]}:`, resp);
         }
     });
+
+    if (tokensToRemove.length > 0) {
+        await db
+            .delete(fcmTokensTable)
+            .where(inArray(fcmTokensTable.fcmToken, tokensToRemove));
+    }
 };

@@ -27,6 +27,7 @@ import {
     validationError,
 } from "@/core/resultHandlers.js";
 import {
+    BasicConversation,
     ConversationForList,
     ConversationListQueryRow,
     ConversationRequest,
@@ -52,7 +53,7 @@ export const sendConversationRequestService = async (
         conversationName,
     }: RequestConversationPayload,
     conn: DB,
-): ResultAsync<{ id: string; type: ConversationType }> => {
+): ResultAsync<{ id: string; type: ConversationType; name: string | null }> => {
     try {
         const userIds = new Set(otherUserIds);
 
@@ -78,6 +79,7 @@ export const sendConversationRequestService = async (
                 .select({
                     id: conversationTable.id,
                     type: conversationTable.type,
+                    name: conversationTable.name,
                 })
                 .from(conversationTable)
                 .innerJoin(cm1, eq(conversationTable.id, cm1.conversationId))
@@ -130,7 +132,7 @@ export const sendConversationRequestService = async (
             .transaction(
                 async (
                     tx,
-                ): ResultAsync<{ id: string; type: ConversationType }> => {
+                ): ReturnType<typeof sendConversationRequestService> => {
                     const [newConversation] = await tx
                         .insert(conversationTable)
                         .values({
@@ -195,7 +197,7 @@ export const reviewConversationRequestService = async (
     userId: string,
     { requestId, status }: ReviewConversationRequestPayload,
     conn: DB,
-): ResultAsync<undefined> => {
+): ResultAsync<ConversationRequest> => {
     try {
         const conversationRequestResult = await getConversationRequest(
             { userId, requestId },
@@ -208,90 +210,94 @@ export const reviewConversationRequestService = async (
         const conversationRequest = conversationRequestResult.data;
 
         return await conn
-            .transaction(async (tx): ResultAsync<undefined> => {
-                await tx
-                    .delete(conversationRequestTable)
-                    .where(and(eq(conversationRequestTable.id, requestId)));
-
-                if (status === "approve") {
+            .transaction(
+                async (
+                    tx,
+                ): ReturnType<typeof reviewConversationRequestService> => {
                     await tx
-                        .update(conversationMemberTable)
-                        .set({
-                            status: "active",
-                        })
-                        .where(
-                            and(
+                        .delete(conversationRequestTable)
+                        .where(and(eq(conversationRequestTable.id, requestId)));
+
+                    if (status === "approve") {
+                        await tx
+                            .update(conversationMemberTable)
+                            .set({
+                                status: "active",
+                            })
+                            .where(
+                                and(
+                                    eq(
+                                        conversationMemberTable.conversationId,
+                                        conversationRequest.conversationId,
+                                    ),
+                                    eq(conversationMemberTable.userId, userId),
+                                ),
+                            );
+
+                        await tx
+                            .update(conversationTable)
+                            .set({
+                                status: "active",
+                            })
+                            .where(
+                                eq(
+                                    conversationTable.id,
+                                    conversationRequest.conversationId,
+                                ),
+                            );
+                    }
+
+                    if (status === "reject") {
+                        const deleteConversationMemberResult =
+                            await deleteConversationMember(
+                                {
+                                    conversationId:
+                                        conversationRequest.conversationId,
+                                    userId: userId,
+                                },
+                                tx,
+                            );
+                        if (!deleteConversationMemberResult.success) {
+                            throw new ApiError(deleteConversationMemberResult);
+                        }
+
+                        const [memberCount] = await tx
+                            .select({ count: count() })
+                            .from(conversationMemberTable)
+                            .where(
                                 eq(
                                     conversationMemberTable.conversationId,
                                     conversationRequest.conversationId,
                                 ),
-                                eq(conversationMemberTable.userId, userId),
-                            ),
-                        );
-
-                    await tx
-                        .update(conversationTable)
-                        .set({
-                            status: "active",
-                        })
-                        .where(
-                            eq(
-                                conversationTable.id,
-                                conversationRequest.conversationId,
-                            ),
-                        );
-                }
-
-                if (status === "reject") {
-                    const deleteConversationMemberResult =
-                        await deleteConversationMember(
-                            {
-                                conversationId:
-                                    conversationRequest.conversationId,
-                                userId: userId,
-                            },
-                            tx,
-                        );
-                    if (!deleteConversationMemberResult.success) {
-                        throw new ApiError(deleteConversationMemberResult);
-                    }
-
-                    const [memberCount] = await tx
-                        .select({ count: count() })
-                        .from(conversationMemberTable)
-                        .where(
-                            eq(
-                                conversationMemberTable.conversationId,
-                                conversationRequest.conversationId,
-                            ),
-                        );
-                    if (memberCount === undefined) {
-                        throw new ApiError(
-                            internalError(
-                                module,
-                                "reviewConversationRequestService",
-                                "Unexpected value",
-                            ),
-                        );
-                    }
-
-                    if (memberCount.count <= 1) {
-                        const deleteConversationResult =
-                            await deleteConversation(
-                                conversationRequest.conversationId,
-                                tx,
                             );
-                        if (!deleteConversationResult.success) {
-                            throw new ApiError(deleteConversationResult);
+                        if (memberCount === undefined) {
+                            throw new ApiError(
+                                internalError(
+                                    module,
+                                    "reviewConversationRequestService",
+                                    "Unexpected value",
+                                ),
+                            );
+                        }
+
+                        if (memberCount.count <= 1) {
+                            const deleteConversationResult =
+                                await deleteConversation(
+                                    conversationRequest.conversationId,
+                                    tx,
+                                );
+                            if (!deleteConversationResult.success) {
+                                throw new ApiError(deleteConversationResult);
+                            }
                         }
                     }
-                }
 
-                return {
-                    success: true,
-                    data: undefined,
-                };
-            })
+                    return {
+                        success: true,
+                        data: conversationRequest,
+                    };
+                },
+            )
             .catch((err) =>
                 handleError(module, "reviewConversationRequestService", err),
             );
@@ -311,9 +317,9 @@ export const getConversationRequest = async (
             .where(
                 userId
                     ? and(
-                        eq(conversationRequestTable.id, requestId),
-                        eq(conversationRequestTable.receiverId, userId),
-                    )
+                          eq(conversationRequestTable.id, requestId),
+                          eq(conversationRequestTable.receiverId, userId),
+                      )
                     : eq(conversationRequestTable.id, requestId),
             );
 
@@ -338,12 +344,12 @@ export const deleteConversationMember = async (
         const whereClause =
             "conversationId" in payload
                 ? and(
-                    eq(
-                        conversationMemberTable.conversationId,
-                        payload.conversationId,
-                    ),
-                    eq(conversationMemberTable.userId, payload.userId),
-                )
+                      eq(
+                          conversationMemberTable.conversationId,
+                          payload.conversationId,
+                      ),
+                      eq(conversationMemberTable.userId, payload.userId),
+                  )
                 : eq(conversationMemberTable.id, payload.conversationMemberId);
 
         await conn.delete(conversationMemberTable).where(whereClause);
@@ -474,18 +480,18 @@ export const conversationListService = async (
                     ),
                     cursor && cursorId
                         ? or(
-                            lt(
-                                latestMessageSubquery.createdAt,
-                                new Date(cursor),
-                            ),
-                            and(
-                                eq(
-                                    latestMessageSubquery.createdAt,
-                                    new Date(cursor),
-                                ),
-                                lt(conversationTable.id, cursorId),
-                            ),
-                        )
+                              lt(
+                                  latestMessageSubquery.createdAt,
+                                  new Date(cursor),
+                              ),
+                              and(
+                                  eq(
+                                      latestMessageSubquery.createdAt,
+                                      new Date(cursor),
+                                  ),
+                                  lt(conversationTable.id, cursorId),
+                              ),
+                          )
                         : undefined,
                 ),
             )
@@ -513,10 +519,10 @@ export const conversationListService = async (
                 lastMessageByUserId: row.lastMessageByUserId,
                 lastMessageByUser: row.lastMessageByUserId
                     ? {
-                        id: row.lastMessageByUserId,
-                        name: row.senderName || "Unknown User",
-                        imageUrl: row.senderImageUrl,
-                    }
+                          id: row.lastMessageByUserId,
+                          name: row.senderName || "Unknown User",
+                          imageUrl: row.senderImageUrl,
+                      }
                     : null,
                 lastMessageAt: row.lastMessageAt?.toISOString() || null,
                 otherUsers: [],
@@ -573,19 +579,37 @@ export const checkConversationAccess = async (
     userId: string,
     conversationId: string,
     db: DB,
-): ResultAsync<{ userIds: string[] }> => {
+): ResultAsync<{ userIds: string[]; conversation: BasicConversation }> => {
     try {
-        const members = await db
-            .select({
-                userId: conversationMemberTable.userId,
-            })
-            .from(conversationMemberTable)
-            .where(
-                and(
-                    eq(conversationMemberTable.conversationId, conversationId),
-                    eq(conversationMemberTable.status, "active"),
+        const [[conversation], members] = await Promise.all([
+            db
+                .select({
+                    id: conversationTable.id,
+                    name: conversationTable.name,
+                    type: conversationTable.type,
+                })
+                .from(conversationTable)
+                .where(eq(conversationTable.id, conversationId)),
+
+            db
+                .select({ userId: conversationMemberTable.userId })
+                .from(conversationMemberTable)
+                .where(
+                    and(
+                        eq(
+                            conversationMemberTable.conversationId,
+                            conversationId,
+                        ),
+                        eq(conversationMemberTable.status, "active"),
+                    ),
                 ),
-            );
+        ]);
+
+        if (!conversation) return notFoundError("Conversation not found");
+
+        if (!members.some((m) => m.userId === userId)) {
+            return forbiddenError("Access denied");
+        }
 
         if (!members.some((m) => m.userId === userId)) {
             return forbiddenError("Access denied");
@@ -595,6 +619,7 @@ export const checkConversationAccess = async (
             success: true,
             data: {
                 userIds: members.map((v) => v.userId),
+                conversation: conversation,
             },
         };
     } catch (err) {
@@ -679,12 +704,12 @@ export const getConversationRequestsService = async (
             .where(
                 cursor
                     ? and(
-                        eq(conversationRequestTable.receiverId, userId),
-                        lt(
-                            conversationRequestTable.createdAt,
-                            new Date(cursor),
-                        ),
-                    )
+                          eq(conversationRequestTable.receiverId, userId),
+                          lt(
+                              conversationRequestTable.createdAt,
+                              new Date(cursor),
+                          ),
+                      )
                     : eq(conversationRequestTable.receiverId, userId),
             )
             .innerJoin(

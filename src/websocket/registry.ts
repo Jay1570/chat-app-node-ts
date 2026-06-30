@@ -49,3 +49,7 @@ export const sendToUser = (userId: string | string[], payload: unknown) => {
         }
     });
 };
+
+export const isUserOnline = (userId: string) => {
+    return connections.has(userId) && (connections.get(userId)?.size ?? 0) > 0;
+};

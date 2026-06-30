@@ -15,9 +15,11 @@ import {
     messageCreateService,
     messageListService,
 } from "@/modules/messages/messages.service.js";
-import { sendToUser } from "@/websocket/registry.js";
+import { isUserOnline, sendToUser } from "@/websocket/registry.js";
 import { sendResponse } from "@/core/responseHandler.js";
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { enqueueNotification } from "@/queue/notification.producer.js";
+import { logger } from "@/core/logger.js";
 
 export const sendMessageController = async (
     req: AuthRequest,
@@ -66,6 +68,30 @@ export const sendMessageController = async (
             data: messageResult.data,
         });
 
+        const offlineUserIds = conversationAccessResult.data.userIds.filter(
+            (id) => !isUserOnline(id) && id !== req.user!.id,
+        );
+
+        console.log("all members:", conversationAccessResult.data.userIds);
+        console.log("current user:", req.user!.id);
+        console.log(
+            "online check results:",
+            conversationAccessResult.data.userIds.map((id) => ({
+                id,
+                online: isUserOnline(id),
+            })),
+        );
+        console.log("offline users:", offlineUserIds);
+        
+
+        enqueueNotification("new_message", offlineUserIds, {
+            title:
+                conversationAccessResult.data.conversation.name ??
+                req.user!.name,
+            body: `${req.user!.name}: ${payloadValidation.data.content}`,
+            data: { conversationId },
+        }).catch((e) => logger.error("Failed to enqueue notification:", e));
+
         return sendResponse(res, {
             success: true,
             message: "Message sent",
@@ -112,12 +138,7 @@ export const listMessageController = async (
         }
 
         const [messagesListResult, readStatusResult] = await Promise.all([
-            messageListService(
-                db,
-                conversationId,
-                query.cursor,
-                query.limit,
-            ),
+            messageListService(db, conversationId, query.cursor, query.limit),
             getMemberReadStatusService(db, conversationId),
         ]);
         if (!messagesListResult.success) {

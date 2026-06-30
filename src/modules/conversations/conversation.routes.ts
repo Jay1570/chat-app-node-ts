@@ -12,7 +12,7 @@ const conversationRouter: Router = express.Router();
 
 conversationRouter.get("/", authenticateToken, conversationListController);
 
-conversationRouter.get("/requests", listConversationRequestsController);
+conversationRouter.get("/requests", authenticateToken, listConversationRequestsController);
 
 conversationRouter.post(
     "/send-request",
