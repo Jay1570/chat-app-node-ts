@@ -30,12 +30,14 @@ export const requestLogger = (
             path: req.baseUrl + req.path,
             query: sanitizeQuery(req.query as Record<string, unknown>),
             contentType: req.headers["content-type"],
+            contentLength: req.headers["content-length"],
             ip: req.ip,
             responseStatus: res.statusCode,
             responseMessage: res.statusMessage,
             resContentType: res.getHeaders()["content-type"],
-            startTime: start,
-            endTime: end,
+            responseSize: res.getHeader("content-length"),
+            startTime: new Date(start).toISOString(),
+            endTime: new Date(end).toISOString(),
             duration: `${end - start}ms`,
         };
 

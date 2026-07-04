@@ -72,18 +72,6 @@ export const sendMessageController = async (
             (id) => !isUserOnline(id) && id !== req.user!.id,
         );
 
-        console.log("all members:", conversationAccessResult.data.userIds);
-        console.log("current user:", req.user!.id);
-        console.log(
-            "online check results:",
-            conversationAccessResult.data.userIds.map((id) => ({
-                id,
-                online: isUserOnline(id),
-            })),
-        );
-        console.log("offline users:", offlineUserIds);
-        
-
         enqueueNotification("new_message", offlineUserIds, {
             title:
                 conversationAccessResult.data.conversation.name ??
@@ -155,6 +143,7 @@ export const listMessageController = async (
             data: {
                 messages: messagesListResult.data,
                 readStatus: readStatusResult.data,
+                conversation: conversationAccessResult.data.conversation,
             },
         });
     } catch (err) {

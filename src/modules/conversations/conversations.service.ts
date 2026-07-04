@@ -317,9 +317,9 @@ export const getConversationRequest = async (
             .where(
                 userId
                     ? and(
-                          eq(conversationRequestTable.id, requestId),
-                          eq(conversationRequestTable.receiverId, userId),
-                      )
+                        eq(conversationRequestTable.id, requestId),
+                        eq(conversationRequestTable.receiverId, userId),
+                    )
                     : eq(conversationRequestTable.id, requestId),
             );
 
@@ -344,12 +344,12 @@ export const deleteConversationMember = async (
         const whereClause =
             "conversationId" in payload
                 ? and(
-                      eq(
-                          conversationMemberTable.conversationId,
-                          payload.conversationId,
-                      ),
-                      eq(conversationMemberTable.userId, payload.userId),
-                  )
+                    eq(
+                        conversationMemberTable.conversationId,
+                        payload.conversationId,
+                    ),
+                    eq(conversationMemberTable.userId, payload.userId),
+                )
                 : eq(conversationMemberTable.id, payload.conversationMemberId);
 
         await conn.delete(conversationMemberTable).where(whereClause);
@@ -480,18 +480,18 @@ export const conversationListService = async (
                     ),
                     cursor && cursorId
                         ? or(
-                              lt(
-                                  latestMessageSubquery.createdAt,
-                                  new Date(cursor),
-                              ),
-                              and(
-                                  eq(
-                                      latestMessageSubquery.createdAt,
-                                      new Date(cursor),
-                                  ),
-                                  lt(conversationTable.id, cursorId),
-                              ),
-                          )
+                            lt(
+                                latestMessageSubquery.createdAt,
+                                new Date(cursor),
+                            ),
+                            and(
+                                eq(
+                                    latestMessageSubquery.createdAt,
+                                    new Date(cursor),
+                                ),
+                                lt(conversationTable.id, cursorId),
+                            ),
+                        )
                         : undefined,
                 ),
             )
@@ -519,10 +519,10 @@ export const conversationListService = async (
                 lastMessageByUserId: row.lastMessageByUserId,
                 lastMessageByUser: row.lastMessageByUserId
                     ? {
-                          id: row.lastMessageByUserId,
-                          name: row.senderName || "Unknown User",
-                          imageUrl: row.senderImageUrl,
-                      }
+                        id: row.lastMessageByUserId,
+                        name: row.senderName || "Unknown User",
+                        imageUrl: row.senderImageUrl,
+                    }
                     : null,
                 lastMessageAt: row.lastMessageAt?.toISOString() || null,
                 otherUsers: [],
@@ -704,12 +704,12 @@ export const getConversationRequestsService = async (
             .where(
                 cursor
                     ? and(
-                          eq(conversationRequestTable.receiverId, userId),
-                          lt(
-                              conversationRequestTable.createdAt,
-                              new Date(cursor),
-                          ),
-                      )
+                        eq(conversationRequestTable.receiverId, userId),
+                        lt(
+                            conversationRequestTable.createdAt,
+                            new Date(cursor),
+                        ),
+                    )
                     : eq(conversationRequestTable.receiverId, userId),
             )
             .innerJoin(

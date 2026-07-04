@@ -26,6 +26,6 @@ conversationRouter.post(
     reviewConversationRequest,
 );
 
-conversationRouter.patch("/:conversationId/read", markAsReadController);
+conversationRouter.patch("/:conversationId/read", authenticateToken, markAsReadController);
 
 export default conversationRouter;

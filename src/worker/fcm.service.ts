@@ -1,6 +1,5 @@
-// worker/fcm.service.ts
 import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { FidMulticastMessage, getMessaging, MulticastMessage } from "firebase-admin/messaging";
+import { getMessaging, MulticastMessage } from "firebase-admin/messaging";
 import db from "@/db/db.js";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import {
@@ -42,8 +41,6 @@ export const sendFcmNotification = async (
         .map((d) => d.fcmToken)
         .filter((t): t is string => t !== null);
 
-    console.log(tokens, devices, userIds);
-
     if (tokens.length === 0) return;
 
     const message: MulticastMessage = {
@@ -57,7 +54,7 @@ export const sendFcmNotification = async (
             notification: {
                 title: payload.title,
                 body: payload.body,
-                icon: "/icons/Icon-192.png",
+                icon: "/icons/Icon-512.png",
             },
         },
         apns: {

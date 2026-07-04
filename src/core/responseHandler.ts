@@ -9,7 +9,7 @@ export const sendResponse = <T>(
 ): Response => {
     return res.status(payload.statusCode).send({
         ...payload,
-        timestamp: Date.now(),
+        timestamp: new Date(Date.now()).toISOString(),
     });
 };
 
