@@ -4,6 +4,7 @@
 
 - [x] Message History Retrieval
 - [x] Read Status / Marking as Read: `last_read_at` column exists but no endpoint to update it — `unreadCount` will never decrease
+- [ ] Read status based on currently open conversation
 - [x] conversation request listing
 - [ ] Testing Suite: Zero tests (unit, integration, E2E) — crucial for WebSocket events and race conditions
 
@@ -21,11 +22,11 @@
 - [ ] Search: No message search or user discovery
     - [x] User discovery
     - [ ] Message Search
-- [ ] Push Notifications: FCM integration(sending notification and firebase integration in backend is pending)
+- [x] Push Notifications: FCM integration(sending notification and firebase integration in backend is pending)
     - [x] Databse migrations to store fcm tokens
     - [x] Create endpoint to store fcm tokens
-    - [ ] integrate firebase messaging in backend
-    - [ ] create a notification queue in a different process to ensure main application is always available
+    - [x] integrate firebase messaging in backend
+    - [x] create a notification queue in a different process to ensure main application is always available
 
 - [ ] Soft Deletes UI: `isDeleted` exists in schema but no "This message was deleted" placeholder logic in API response
 
@@ -43,7 +44,7 @@
 - [x] setup Firebase messaging and crashlytics
 - [x] setup web socket
 - [x] create conversation list screen
-- [ ] create message screen
+- [x] create message screen
 - [ ] create user settings screen
 - [ ] create profile screen
 - [ ] create conversation details screen

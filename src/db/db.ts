@@ -13,6 +13,7 @@ const db = drizzle(env.DB_URL, {
             });
         },
     },
+    jit: true,
 });
 
 export type DB = Omit<typeof db, "$client">;

@@ -15,7 +15,7 @@ const processJob = async (job: NotificationJob) => {
 
 const requeueWithDelay = async (job: NotificationJob) => {
     const retryJob: NotificationJob = { ...job, attempts: job.attempts + 1 };
-    await Bun.sleepSync(RETRY_DELAY_MS);
+    Bun.sleepSync(RETRY_DELAY_MS);
     await Bun.redis.lpush(QUEUE_KEY, JSON.stringify(retryJob));
 };
 

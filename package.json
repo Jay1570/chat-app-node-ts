@@ -11,6 +11,7 @@
         "worker": "bun run dist/src/worker/index.js",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
+        "db:studio": "drizzle-kit studio",
         "lint": "eslint ."
     },
     "keywords": [],
@@ -23,12 +24,12 @@
         "cors": "^2.8.6",
         "dayjs": "^1.11.21",
         "dotenv": "^17.4.2",
-        "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
+        "drizzle-orm": "^1.0.0-rc.4-fb12281",
         "express": "^5.2.1",
-        "firebase-admin": "^14.1.0",
+        "firebase-admin": "^14.2.0",
         "jsonwebtoken": "^9.0.3",
-        "pg": "^8.22.0",
-        "ws": "^8.21.0",
+        "pg": "^8.23.0",
+        "ws": "^8.21.3",
         "zod": "^4.4.3"
     },
     "devDependencies": {
@@ -38,15 +39,15 @@
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
         "@types/jsonwebtoken": "^9.0.10",
-        "@types/pg": "^8.20.0",
+        "@types/pg": "^8.21.0",
         "@types/ws": "^8.18.1",
-        "@typescript-eslint/eslint-plugin": "^8.62.0",
-        "@typescript-eslint/parser": "^8.62.0",
+        "@typescript-eslint/eslint-plugin": "^8.66.0",
+        "@typescript-eslint/parser": "^8.66.0",
         "drizzle-kit": "^1.0.0-rc.4-ca0f029",
-        "eslint": "^10.6.0",
-        "globals": "^17.7.0",
+        "eslint": "^10.8.1",
+        "globals": "^17.9.0",
         "jiti": "^2.7.0",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.62.0"
+        "typescript-eslint": "^8.66.0"
     }
 }
