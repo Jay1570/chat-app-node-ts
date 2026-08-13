@@ -116,7 +116,7 @@ const log = (level: Level, message: string, meta?: unknown) => {
         `${chalk.cyan(requestId ?? "-")} ` +
         `${message}`;
 
-    console.log(text, "\n", meta);
+    console.log(text, "\n", meta ? meta : "");
 
     write(level, JSON.stringify(logObject));
 };

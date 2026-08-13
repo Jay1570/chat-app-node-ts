@@ -37,7 +37,7 @@ import {
     RequestConversationPayload,
     ReviewConversationRequestPayload,
 } from "@/types/Conversation.js";
-import { ApiError, ResultAsync } from "@/types/Result.js";
+import { AppError, ResultAsync } from "@/types/Result.js";
 import { DB } from "@/db/db.js";
 import { getAllUserByIds } from "@/modules/users/user.service.js";
 import { mapOneToMany } from "@/utils/dbUtils.js";
@@ -146,7 +146,7 @@ export const sendConversationRequestService = async (
                         });
 
                     if (!newConversation) {
-                        throw new ApiError(
+                        throw new AppError(
                             internalError(
                                 module,
                                 "sendConversationRequestService",
@@ -258,7 +258,7 @@ export const reviewConversationRequestService = async (
                                 tx,
                             );
                         if (!deleteConversationMemberResult.success) {
-                            throw new ApiError(deleteConversationMemberResult);
+                            throw new AppError(deleteConversationMemberResult);
                         }
 
                         const [memberCount] = await tx
@@ -271,7 +271,7 @@ export const reviewConversationRequestService = async (
                                 ),
                             );
                         if (memberCount === undefined) {
-                            throw new ApiError(
+                            throw new AppError(
                                 internalError(
                                     module,
                                     "reviewConversationRequestService",
@@ -287,7 +287,7 @@ export const reviewConversationRequestService = async (
                                     tx,
                                 );
                             if (!deleteConversationResult.success) {
-                                throw new ApiError(deleteConversationResult);
+                                throw new AppError(deleteConversationResult);
                             }
                         }
                     }

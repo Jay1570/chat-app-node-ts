@@ -1,106 +1,56 @@
-import type { NextFunction, Response } from "express";
-import {
-    getHttpStatusLine,
-    sendUnauthorized,
-} from "@/core/responseHandler.js";
+import { sendUnauthorized } from "@/core/responseHandler.js";
 import { verifyToken } from "@/utils/jwtHelpers.js";
 import { getUserById } from "@/modules/users/user.service.js";
-import type { AuthRequest } from "@/types/AuthRequest.js";
 import db from "@/db/db.js";
-import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
-import http from "http";
-import Stream from "stream";
-import webSocketServer from "@/websocket/index.js";
+import { MiddlewareHandler } from "hono";
+import { AppError } from "@/types/Result.js";
 
-export const authenticateToken = async (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction,
-) => {
-    try {
-        const token = req.headers.authorization;
+export const authenticateToken: MiddlewareHandler = async (c, next) => {
+    const token = c.req.header("Authorization");
 
-        if (!token) return sendUnauthorized(res);
+    if (!token) return sendUnauthorized(c);
 
-        const tokenResult = verifyToken(token);
-        if (!tokenResult.success) {
-            return next(tokenResult);
-        }
-        if (!tokenResult.data.id) {
-            return sendUnauthorized(res);
-        }
-
-        const userResult = await getUserById(tokenResult.data.id, db);
-        if (!userResult.success) {
-            if (userResult.error.code === 404) {
-                return sendUnauthorized(res);
-            }
-            return next(userResult);
-        }
-
-        req.user = userResult.data;
-
-        return next();
-    } catch (err) {
-        return next(err);
+    const tokenResult = verifyToken(token);
+    if (!tokenResult.success) {
+        throw new AppError(tokenResult);
     }
+    if (!tokenResult.data.id) {
+        return sendUnauthorized(c);
+    }
+
+    const userResult = await getUserById(tokenResult.data.id, db);
+    if (!userResult.success) {
+        if (userResult.error.code === 404) {
+            return sendUnauthorized(c);
+        }
+        throw new AppError(userResult);
+    }
+
+    c.set("user", userResult.data);
+
+    return next();
 };
 
-export const authenticateWebSocket = async (
-    req: http.IncomingMessage,
-    socket: Stream.Duplex,
-    head: NonSharedBuffer,
-) => {
-    try {
-        const url = new URL(req.url!, "http://localhost");
+export const authenticateWebSocket: MiddlewareHandler = async (c, next) => {
+    const token = c.req.query("token");
 
-        if (url.pathname !== "/ws") {
-            socket.end();
-            return;
-        }
-
-        const token = url.searchParams.get("token");
-
-        if (!token) {
-            const statusLine = getHttpStatusLine({
-                success: false,
-                error: {
-                    code: HttpStatusCode.UNAUTHORIZED,
-                    message: "Unauthorized",
-                },
-            });
-            await socket.end(statusLine);
-            return;
-        }
-
-        const payload = verifyToken(token);
-        if (!payload.success) {
-            const statusLine = getHttpStatusLine(payload);
-            socket.end(statusLine);
-            return
-        }
-
-        const userResult = await getUserById(payload.data.id, db);
-        if (!userResult.success) {
-            const statusLine = getHttpStatusLine(userResult);
-            await socket.end(statusLine);
-            return;
-        }
-
-        req.user = userResult.data;
-
-        webSocketServer.handleUpgrade(req, socket, head, (ws) => {
-            ws.user = userResult.data;
-            webSocketServer.emit("connection", ws, req);
-        });
-    } catch {
-        const statusLine = getHttpStatusLine({
-            success: false,
-            error: {
-                code: HttpStatusCode.UNAUTHORIZED,
-                message: "Unauthorized",
-            },
-        });
-        socket.end(statusLine);
+    if (!token) {
+        return sendUnauthorized(c);
     }
+
+    const payload = verifyToken(token);
+    if (!payload.success) {
+        throw new AppError(payload);
+    }
+
+    const userResult = await getUserById(payload.data.id, db);
+    if (!userResult.success) {
+        if (userResult.error.code === 404) {
+            return sendUnauthorized(c);
+        }
+        throw new AppError(userResult);
+    }
+
+    c.set("wsUser", userResult.data);
+    return next();
 };

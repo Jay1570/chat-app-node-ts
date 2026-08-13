@@ -1,12 +1,12 @@
-import express, { Router } from "express";
 import userRouter from "@/modules/users/user.routes.js";
 import conversationRouter from "@/modules/conversations/conversation.routes.js";
 import messageRouter from "@/modules/messages/messages.routes.js";
+import { Hono } from "hono";
 
-const router: Router = express.Router();
+const router = new Hono();
 
-router.use("/users", userRouter);
-router.use("/conversations", conversationRouter);
-router.use("/messages", messageRouter);
+router.route("/users", userRouter);
+router.route("/conversations", conversationRouter);
+router.route("/messages", messageRouter);
 
 export default router;

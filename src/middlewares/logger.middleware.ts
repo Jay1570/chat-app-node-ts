@@ -1,6 +1,6 @@
-import type { Request, Response, NextFunction } from "express";
 import { getRequestId } from "@/core/requestContext.js";
 import { logger } from "@/core/logger.js";
+import { MiddlewareHandler } from "hono";
 
 const SENSITIVE_PARAMS = ["token", "password", "api_key", "code", "secret"];
 
@@ -14,38 +14,28 @@ const sanitizeQuery = (query: Record<string, unknown>) => {
     return sanitized;
 };
 
-export const requestLogger = (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-) => {
+export const requestLogger: MiddlewareHandler = async (c, next) => {
     const start = Date.now();
 
-    res.on("finish", () => {
-        const end = Date.now();
+    await next();
 
-        const request = {
-            requestId: getRequestId(),
-            method: req.method,
-            path: req.baseUrl + req.path,
-            query: sanitizeQuery(req.query as Record<string, unknown>),
-            contentType: req.headers["content-type"],
-            contentLength: req.headers["content-length"],
-            ip: req.ip,
-            ips: req.ips,
-            xForwardedFor: req.get("x-forwarded-for"),
-            xRealIp: req.get("x-real-ip"),
-            responseStatus: res.statusCode,
-            responseMessage: res.statusMessage,
-            resContentType: res.getHeaders()["content-type"],
-            responseSize: res.getHeader("content-length"),
-            startTime: new Date(start).toISOString(),
-            endTime: new Date(end).toISOString(),
-            duration: `${end - start}ms`,
-        };
+    const end = Date.now();
 
-        logger.info("Request finished", request);
-    });
+    const request = {
+        requestId: getRequestId(),
+        method: c.req.method,
+        path: c.req.path,
+        query: sanitizeQuery(c.req.query() as Record<string, unknown>),
+        contentType: c.req.header("content-type"),
+        contentLength: c.req.header("content-length"),
+        xForwardedFor: c.req.header("x-forwarded-for"),
+        xRealIp: c.req.header("x-real-ip"),
+        responseStatus: c.res.status,
+        resContentType: c.res.headers.get("content-type"),
+        startTime: new Date(start).toISOString(),
+        endTime: new Date(end).toISOString(),
+        duration: `${end - start}ms`,
+    };
 
-    return next();
+    logger.info("Request finished", request);
 };

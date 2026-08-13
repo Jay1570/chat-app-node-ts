@@ -1,5 +1,3 @@
-import { NextFunction, Response } from "express";
-import { AuthRequest } from "@/types/AuthRequest.js";
 import { validationError } from "@/core/resultHandlers.js";
 import {
     checkConversationAccess,
@@ -20,133 +18,119 @@ import { sendResponse } from "@/core/responseHandler.js";
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
 import { enqueueNotification } from "@/queue/notification.producer.js";
 import { logger } from "@/core/logger.js";
+import { AppError } from "@/types/Result.js";
+import { MiddlewareHandler } from "hono";
 
-export const sendMessageController = async (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction,
-) => {
-    try {
-        const { conversationId } = req.params;
+export const sendMessageController: MiddlewareHandler = async (c) => {
+    const conversationId = c.req.param("conversationId");
 
-        if (!conversationId) {
-            return next(validationError("Conversation id is required"));
-        }
-        if (typeof conversationId !== "string") {
-            return next(validationError("Invalid conversation id"));
-        }
-
-        const payloadValidation = validatePayload(
-            messageCreatePayload,
-            req.body,
-        );
-        if (!payloadValidation.success) {
-            return next(payloadValidation);
-        }
-
-        const conversationAccessResult = await checkConversationAccess(
-            req.user!.id,
-            conversationId,
-            db,
-        );
-        if (!conversationAccessResult.success) {
-            return next(conversationAccessResult);
-        }
-
-        const messageResult = await messageCreateService(
-            req.user!,
-            conversationId,
-            payloadValidation.data,
-            db,
-        );
-        if (!messageResult.success) {
-            return next(messageResult);
-        }
-
-        sendToUser(conversationAccessResult.data.userIds, {
-            event: `conversation:${conversationId}:message:new`,
-            data: messageResult.data,
-        });
-
-        const offlineUserIds = conversationAccessResult.data.userIds.filter(
-            (id) => !isUserOnline(id) && id !== req.user!.id,
-        );
-
-        enqueueNotification("new_message", offlineUserIds, {
-            title:
-                conversationAccessResult.data.conversation.name ??
-                req.user!.name,
-            body: `${req.user!.name}: ${payloadValidation.data.content}`,
-            data: { conversationId },
-        }).catch((e) => logger.error("Failed to enqueue notification:", e));
-
-        return sendResponse(res, {
-            success: true,
-            message: "Message sent",
-            statusCode: HttpStatusCode.OK,
-            data: messageResult.data,
-        });
-    } catch (err) {
-        return next(err);
+    if (!conversationId) {
+        throw new AppError(validationError("Conversation id is required"));
     }
+    if (typeof conversationId !== "string") {
+        throw new AppError(validationError("Invalid conversation id"));
+    }
+
+    const body = await c.req.json();
+    const user = c.get("user")!;
+
+    const payloadValidation = validatePayload(messageCreatePayload, body);
+    if (!payloadValidation.success) {
+        throw new AppError(payloadValidation);
+    }
+
+    const conversationAccessResult = await checkConversationAccess(
+        user.id,
+        conversationId,
+        db,
+    );
+    if (!conversationAccessResult.success) {
+        throw new AppError(conversationAccessResult);
+    }
+
+    const messageResult = await messageCreateService(
+        user,
+        conversationId,
+        payloadValidation.data,
+        db,
+    );
+    if (!messageResult.success) {
+        throw new AppError(messageResult);
+    }
+
+    sendToUser(conversationAccessResult.data.userIds, {
+        event: `conversation:${conversationId}:message:new`,
+        data: messageResult.data,
+    });
+
+    const offlineUserIds = conversationAccessResult.data.userIds.filter(
+        (id) => !isUserOnline(id) && id !== user.id,
+    );
+
+    enqueueNotification("new_message", offlineUserIds, {
+        title: conversationAccessResult.data.conversation.name ?? user.name,
+        body: `${user.name}: ${payloadValidation.data.content}`,
+        data: { conversationId },
+    }).catch((e) => logger.error("Failed to enqueue notification:", e));
+
+    return sendResponse(c, {
+        success: true,
+        message: "Message sent",
+        statusCode: HttpStatusCode.OK,
+        data: messageResult.data,
+    });
 };
 
-export const listMessageController = async (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction,
-) => {
-    try {
-        const { conversationId } = req.params;
+export const listMessageController: MiddlewareHandler = async (c) => {
+    const conversationId = c.req.param("conversationId");
 
-        if (!conversationId) {
-            return next(validationError("Conversation id is required"));
-        }
-        if (typeof conversationId !== "string") {
-            return next(validationError("Invalid conversation id"));
-        }
-
-        const messageQueryValidationResult = validatePayload(
-            messageListPayload,
-            req.query,
-        );
-        if (!messageQueryValidationResult.success) {
-            return next(messageQueryValidationResult);
-        }
-
-        const query = messageQueryValidationResult.data;
-
-        const conversationAccessResult = await checkConversationAccess(
-            req.user!.id,
-            conversationId,
-            db,
-        );
-        if (!conversationAccessResult.success) {
-            return next(conversationAccessResult);
-        }
-
-        const [messagesListResult, readStatusResult] = await Promise.all([
-            messageListService(db, conversationId, query.cursor, query.limit),
-            getMemberReadStatusService(db, conversationId),
-        ]);
-        if (!messagesListResult.success) {
-            return next(messagesListResult);
-        }
-        if (!readStatusResult.success) {
-            return next(readStatusResult);
-        }
-
-        return sendResponse(res, {
-            success: true,
-            message: "Messages retrieved successfully",
-            statusCode: HttpStatusCode.OK,
-            data: {
-                messages: messagesListResult.data,
-                readStatus: readStatusResult.data,
-                conversation: conversationAccessResult.data.conversation,
-            },
-        });
-    } catch (err) {
-        return next(err);
+    if (!conversationId) {
+        throw new AppError(validationError("Conversation id is required"));
     }
+    if (typeof conversationId !== "string") {
+        throw new AppError(validationError("Invalid conversation id"));
+    }
+
+    const messageQueryValidationResult = validatePayload(
+        messageListPayload,
+        c.req.query(),
+    );
+    if (!messageQueryValidationResult.success) {
+        throw new AppError(messageQueryValidationResult);
+    }
+
+    const query = messageQueryValidationResult.data;
+
+    const user = c.get("user")!;
+
+    const conversationAccessResult = await checkConversationAccess(
+        user.id,
+        conversationId,
+        db,
+    );
+    if (!conversationAccessResult.success) {
+        throw new AppError(conversationAccessResult);
+    }
+
+    const [messagesListResult, readStatusResult] = await Promise.all([
+        messageListService(db, conversationId, query.cursor, query.limit),
+        getMemberReadStatusService(db, conversationId),
+    ]);
+    if (!messagesListResult.success) {
+        throw new AppError(messagesListResult);
+    }
+    if (!readStatusResult.success) {
+        throw new AppError(readStatusResult);
+    }
+
+    return sendResponse(c, {
+        success: true,
+        message: "Messages retrieved successfully",
+        statusCode: HttpStatusCode.OK,
+        data: {
+            messages: messagesListResult.data,
+            readStatus: readStatusResult.data,
+            conversation: conversationAccessResult.data.conversation,
+        },
+    });
 };

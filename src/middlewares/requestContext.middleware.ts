@@ -1,16 +1,12 @@
-import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import { requestContext } from "@/core/requestContext.js";
+import { MiddlewareHandler } from "hono";
 
-export const requestContextMiddleware = (
-    _req: Request,
-    res: Response,
-    next: NextFunction,
-) => {
+export const requestContextMiddleware: MiddlewareHandler = (c, next) => {
     const requestId = crypto.randomUUID();
 
-    requestContext.run({ requestId }, () => {
-        res.setHeader("x-request-id", requestId);
+    return requestContext.run({ requestId }, () => {
+        c.header("x-request-id", requestId);
         return next();
     });
 };

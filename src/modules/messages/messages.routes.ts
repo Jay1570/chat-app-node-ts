@@ -1,11 +1,11 @@
-import express, { Router } from "express";
 import { authenticateToken } from "@/middlewares/authenticate.middleware.js";
 import {
     listMessageController,
     sendMessageController,
 } from "@/modules/messages/messages.controller.js";
+import { Hono } from "hono";
 
-const messageRouter: Router = express.Router();
+const messageRouter = new Hono();
 
 messageRouter.get("/:conversationId", authenticateToken, listMessageController);
 

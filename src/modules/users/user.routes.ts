@@ -1,4 +1,3 @@
-import express, { Router } from "express";
 import { authenticateToken } from "@/middlewares/authenticate.middleware.js";
 import {
     currentUser,
@@ -9,8 +8,9 @@ import {
     updateFcmToken,
     discoverUsersController,
 } from "@/modules/users/users.controller.js";
+import { Hono } from "hono";
 
-const userRouter: Router = express.Router();
+const userRouter = new Hono();
 
 userRouter.get("/me", authenticateToken, currentUser);
 userRouter.post("/register", registerUser);
