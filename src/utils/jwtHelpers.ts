@@ -1,13 +1,20 @@
 import env from "@/config/env.js";
-import type { Result } from "@/types/Result.js";
+import type { ResultAsync } from "@/types/Result.js";
 import type { JwtUserPayload } from "@/types/User.js";
-import jwt from "jsonwebtoken";
+import { sign, verify } from "hono/jwt";
 import crypto from "crypto";
 
-export const signJWT = (payload: JwtUserPayload): string => {
-    return jwt.sign(payload, env.JWT_SECRET, {
-        expiresIn: "1h",
-    });
+const ONE_HOUR_SECONDS = 60 * 60;
+
+export const signJWT = async (payload: JwtUserPayload): Promise<string> => {
+    return sign(
+        {
+            ...payload,
+            exp: Math.floor(Date.now() / 1000) + ONE_HOUR_SECONDS,
+        },
+        env.JWT_SECRET,
+        "HS256",
+    );
 };
 
 export const generateRefreshToken = (): string => {
@@ -15,12 +22,18 @@ export const generateRefreshToken = (): string => {
 };
 
 export const hashRefreshToken = (refreshToken: string): string => {
-    return crypto.hash("sha256", refreshToken)
-}
+    return crypto.hash("sha256", refreshToken);
+};
 
-export const verifyToken = (token: string): Result<JwtUserPayload> => {
+export const verifyToken = async (
+    token: string,
+): ResultAsync<JwtUserPayload> => {
     try {
-        const decoded = jwt.verify(token, env.JWT_SECRET) as JwtUserPayload;
+        const decoded = (await verify(
+            token,
+            env.JWT_SECRET,
+            "HS256",
+        )) as JwtUserPayload;
         return {
             success: true,
             data: decoded,
@@ -32,4 +45,3 @@ export const verifyToken = (token: string): Result<JwtUserPayload> => {
         };
     }
 };
-

@@ -17,7 +17,6 @@ import {
     registerConnection,
     unregisterConnection,
 } from "@/websocket/registry.js";
-import { handlePong, initHeartbeat } from "@/websocket/heartbeat.js";
 
 const app = new Hono();
 
@@ -36,26 +35,18 @@ app.use(
             onOpen(_event, ws) {
                 const user = c.get("wsUser");
                 registerConnection(user!.id, ws);
-                initHeartbeat(ws);
             },
-            onMessage(event, ws) {
-                let data: unknown;
-                try {
-                    data = JSON.parse(event.data.toString());
-                } catch {
-                    return;
-                }
-
-                if ((data as { type?: string }).type === "pong") {
-                    handlePong(ws);
-                    return;
-                }
-
-                // dispatch to your WsEvents handlers here
+            onMessage(_event) {
+                // let _data: unknown;
+                // try {
+                //     _data = JSON.parse(event.data.toString());
+                // } catch {
+                //     return;
+                // }
             },
             onClose(_event, ws) {
                 const user = c.get("wsUser");
-                unregisterConnection(user!.id, ws);
+                unregisterConnection(user!.id, ws, );
             },
         };
     }),
@@ -71,6 +62,7 @@ app.notFound((c) => {
 });
 
 app.onError((err, c) => {
+    if (!err) return sendServerError(c);
     if (err instanceof AppError) {
         if (err.error.code === HttpStatusCode.INTERNAL_SERVER_ERROR) {
             logger.error("Request finished with errors", err);

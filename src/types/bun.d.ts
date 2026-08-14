@@ -1,5 +1,5 @@
-declare namespace NodeJS {
-    interface ProcessEnv {
+declare namespace Bun {
+    interface Env {
         DB_URL: string;
         PORT: string;
         JWT_SECRET: string;

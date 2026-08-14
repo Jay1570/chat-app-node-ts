@@ -54,7 +54,7 @@ export const registerUser: MiddlewareHandler = async (c) => {
 
     const user = userInsertResult.data;
 
-    const accessToken = signJWT({ id: user.id });
+    const accessToken = await signJWT({ id: user.id });
     const refreshToken = generateRefreshToken();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
@@ -122,7 +122,7 @@ export const loginUser: MiddlewareHandler = async (c) => {
         });
     }
 
-    const accessToken = signJWT({ id: safeUser.id });
+    const accessToken = await signJWT({ id: safeUser.id });
     const refreshToken = generateRefreshToken();
     const refreshTokenHash = hashRefreshToken(refreshToken);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
@@ -191,7 +191,7 @@ export const refreshTokens: MiddlewareHandler = async (c) => {
         });
     }
 
-    const newAccessToken = signJWT({ id: session.userId });
+    const newAccessToken = await signJWT({ id: session.userId });
     const newRefreshToken = generateRefreshToken();
     const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
     const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days

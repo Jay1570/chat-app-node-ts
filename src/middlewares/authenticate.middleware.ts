@@ -10,7 +10,7 @@ export const authenticateToken: MiddlewareHandler = async (c, next) => {
 
     if (!token) return sendUnauthorized(c);
 
-    const tokenResult = verifyToken(token);
+    const tokenResult = await verifyToken(token);
     if (!tokenResult.success) {
         throw new AppError(tokenResult);
     }
@@ -38,7 +38,7 @@ export const authenticateWebSocket: MiddlewareHandler = async (c, next) => {
         return sendUnauthorized(c);
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     if (!payload.success) {
         throw new AppError(payload);
     }

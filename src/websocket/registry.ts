@@ -1,3 +1,4 @@
+import { logger } from "@/core/logger.js";
 import type { WSContext } from "hono/ws";
 
 const WS_OPEN = 1;
@@ -16,6 +17,8 @@ export const registerConnection = (userId: string, ws: WSContext) => {
 export const unregisterConnection = (userId: string, ws: WSContext) => {
     const sockets = connections.get(userId);
     if (!sockets) return;
+
+    logger.info(`terminating socket for ${userId}`);
 
     sockets.delete(ws);
     if (sockets.size === 0) {
