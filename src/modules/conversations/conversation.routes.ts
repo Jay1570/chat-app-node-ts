@@ -1,4 +1,3 @@
-import express, { Router } from "express";
 import { authenticateToken } from "@/middlewares/authenticate.middleware.js";
 import {
     conversationListController,
@@ -7,12 +6,17 @@ import {
     reviewConversationRequest,
     sendConversationRequest,
 } from "@/modules/conversations/conversations.controller.js";
+import { Hono } from "hono";
 
-const conversationRouter: Router = express.Router();
+const conversationRouter = new Hono();
 
 conversationRouter.get("/", authenticateToken, conversationListController);
 
-conversationRouter.get("/requests", authenticateToken, listConversationRequestsController);
+conversationRouter.get(
+    "/requests",
+    authenticateToken,
+    listConversationRequestsController,
+);
 
 conversationRouter.post(
     "/send-request",
@@ -26,6 +30,10 @@ conversationRouter.post(
     reviewConversationRequest,
 );
 
-conversationRouter.patch("/:conversationId/read", authenticateToken, markAsReadController);
+conversationRouter.patch(
+    "/:conversationId/read",
+    authenticateToken,
+    markAsReadController,
+);
 
 export default conversationRouter;

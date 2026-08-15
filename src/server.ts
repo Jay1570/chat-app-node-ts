@@ -1,81 +1,40 @@
-import express, { type Request, type Response } from "express";
-import type { Application, NextFunction } from "express";
 import env from "@/config/env.js";
-import cors from "cors";
-import router from "@/routes.js";
-import { requestLogger } from "@/middlewares/logger.middleware.js";
-import {
-    sendError,
-    sendResponse,
-    sendServerError,
-} from "@/core/responseHandler.js";
-import { ErrorResult } from "@/types/Result.js";
-import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
-import { requestContextMiddleware } from "@/middlewares/requestContext.middleware.js";
 import { logger } from "@/core/logger.js";
-import http from "http";
-import { authenticateWebSocket } from "@/middlewares/authenticate.middleware.js";
+import { websocket } from "hono/bun";
+import app from "@/app.js";
 
-const app: Application = express();
 const port = env.PORT || 8000;
 
-const server = http.createServer(app);
-
-app.set("trust proxy", true);
-
-app.use(cors());
-app.use(express.json());
-
-app.use(requestContextMiddleware);
-app.use(requestLogger);
-app.use("/api", router);
-
-app.use((req, res) => {
-    return sendResponse(res, {
-        success: false,
-        message: `Route ${req.path} not found`,
-        statusCode: 404,
-        data: undefined,
-    });
-});
-
-app.use(
-    (
-        err: Error | ErrorResult | object,
-        _req: Request,
-        res: Response,
-        _next: NextFunction,
-    ) => {
-        if (!err) return sendServerError(res);
-
-        if (
-            err instanceof Error ||
-            ("success" in err &&
-                err.error.code === HttpStatusCode.INTERNAL_SERVER_ERROR)
-        ) {
-            logger.error("Request finished with errors", err);
-            return sendServerError(res);
+const server = Bun.serve({
+    port,
+    fetch: app.fetch,
+    websocket: {
+        ...websocket,
+        sendPings: true,
+        idleTimeout: 30,
+        close: (_ws, code, reason) => { 
+            logger.info(`ws closed for ${code} ${reason}`);
         }
-
-        if ("success" in err) {
-            return sendError(res, err);
-        }
-
-        logger.error("Request finished with errors", err);
-        return sendServerError(res);
     },
-);
-
-process.on("unhandledRejection", (reason) =>
-    console.error("Unhandled rejection:", reason),
-);
-process.on("uncaughtException", (err) => {
-    console.error("Uncaught exception:", err);
-    process.exit(1);
 });
 
-server.on("upgrade", authenticateWebSocket);
+logger.info(`Server is running on port ${port}`);
 
-server.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+const shutdown = async (signal: string) => {
+    logger.info(`Received ${signal}, shutting down...`);
+    server.stop();
+    process.exit(0);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+process.on("unhandledRejection", (reason) => {
+    logger.error("Unhandled rejection:", reason);
+    shutdown("unhandledRejection");
+});
+
+process.on("uncaughtException", (err) => {
+    logger.error("Uncaught exception:", err);
+    shutdown("uncaughtException");
 });

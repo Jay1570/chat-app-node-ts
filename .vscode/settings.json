@@ -1,0 +1,15 @@
+{
+    "eslint.useFlatConfig": true,
+    "eslint.enable": true,
+    "eslint.lintTask.enable": true,
+    "eslint.workingDirectories": [
+        {
+            "mode": "auto"
+        }
+    ],
+    "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
+    "js/ts.preferences.importModuleSpecifierEnding": "js",
+    "js/ts.preferences.includePackageJsonAutoImports": "on",
+    "js/ts.preferences.importModuleSpecifier": "non-relative",
+    "js/ts.tsdk.path": "node_modules/typescript/lib"
+}

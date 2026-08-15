@@ -1,5 +1,5 @@
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
-import { ApiError, ErrorResult } from "@/types/Result.js";
+import { AppError, ErrorResult } from "@/types/Result.js";
 
 export const internalError = (
     module: string,
@@ -54,8 +54,8 @@ export const handleError = (
     method: string,
     error?: unknown,
 ): ErrorResult => {
-    if (error instanceof ApiError) {
-        return error.error;
+    if (error instanceof AppError) {
+        return error;
     }
 
     return internalError(module, method, error);

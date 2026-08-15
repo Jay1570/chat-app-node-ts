@@ -31,8 +31,9 @@
         "moduleDetection": "force",
         "skipLibCheck": true,
         "paths": {
-            "@/*": ["./src/*"],
-        }
+            "@/*": ["./src/*"]
+        },
+        "jsxImportSource": "hono/jsx"
     },
     "include": ["src", "src/worker"],
     "exclude": [

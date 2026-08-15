@@ -1,20 +1,23 @@
-import type { Response } from "express";
 import type { HttpResponse } from "@/types/response.js";
 import type { ErrorResult } from "@/types/Result.js";
 import { HttpStatusCode } from "@/config/HttpStatusCodes.js";
+import { Context } from "hono";
 
 export const sendResponse = <T>(
-    res: Response,
+    c: Context,
     payload: HttpResponse<T>,
 ): Response => {
-    return res.status(payload.statusCode).send({
-        ...payload,
-        timestamp: new Date(Date.now()).toISOString(),
-    });
+    return c.json(
+        {
+            ...payload,
+            timestamp: new Date(Date.now()).toISOString(),
+        },
+        payload.statusCode,
+    );
 };
 
-export const sendUnauthorized = (res: Response): Response => {
-    return sendResponse(res, {
+export const sendUnauthorized = (c: Context): Response => {
+    return sendResponse(c, {
         success: false,
         data: undefined,
         message: "Unauthorized",
@@ -22,8 +25,8 @@ export const sendUnauthorized = (res: Response): Response => {
     });
 };
 
-export const sendServerError = (res: Response): Response => {
-    return sendResponse(res, {
+export const sendServerError = (c: Context): Response => {
+    return sendResponse(c, {
         success: false,
         data: undefined,
         message: "Internal server error",
@@ -31,32 +34,15 @@ export const sendServerError = (res: Response): Response => {
     });
 };
 
-export const sendError = (res: Response, error: ErrorResult): Response => {
+export const sendError = (c: Context, error: ErrorResult): Response => {
     if (error.error.code === HttpStatusCode.INTERNAL_SERVER_ERROR) {
-        return sendServerError(res);
+        return sendServerError(c);
     }
 
-    return sendResponse(res, {
+    return sendResponse(c, {
         success: error.success,
         message: error.error.message,
         statusCode: error.error.code,
         error: error.error.error,
     });
-};
-
-export const getHttpStatusLine = (error: ErrorResult): string => {
-    const body = JSON.stringify({
-        success: false,
-        message: error.error.message,
-        statusCode: error.error.code,
-    });
-
-    return (
-        `HTTP/1.1 ${error.error.code} ${error.error.message}\r\n` +
-        "Content-Type: application/json\r\n" +
-        "Connection: close\r\n" +
-        `Content-Length: ${Buffer.byteLength(body)}\r\n` +
-        "\r\n" +
-        body
-    );
 };

@@ -15,11 +15,13 @@ export type ResultError = {
     method?: string;
 };
 
-export class ApiError extends Error {
-    error: ErrorResult;
+export class AppError extends Error implements ErrorResult {
+    readonly success: false;
+    readonly error: ResultError;
 
     constructor(error: ErrorResult) {
         super();
-        this.error = error;
+        this.success = error.success;
+        this.error = error.error;
     }
 }

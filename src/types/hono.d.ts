@@ -1,9 +1,8 @@
-import "http";
 import { UserWithoutPassword } from "@/types/User.ts";
 
-declare module "http" {
-    interface IncomingMessage {
+declare module "hono" {
+    interface ContextVariableMap {
         user?: UserWithoutPassword;
-        isAlive?: boolean;
+        wsUser?: UserWithoutPassword;
     }
 }
